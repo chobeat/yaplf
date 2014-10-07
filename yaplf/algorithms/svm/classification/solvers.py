@@ -1026,6 +1026,145 @@ class AMPLKernelFactory(object):
             raise ValueError(str(self.kernel)
                              + 'not analytically representable')
 
+class GurobiS3VMClassificationSolver(SVMClassificationSolver):
+    r"""
+    SVM Classification solver based on gurobi. This solver is specialized in
+    finding the approximate solution of the optimization problem described in
+    [Cortes and Vapnik, 1995], both in its original and soft-margin
+    formulation.
+
+    INPUT:
+
+    - ``self`` -- object on which the function is invoked.
+
+    - ``verbose`` -- boolean (default: ``False``) flag triggering verbose mode.
+
+    OUTPUT:
+
+    ``GurobiClassificationSolver`` object.
+
+    EXAMPLES:
+
+    Consider the following representation of the AND binary function, and a
+    default instantiation for ``GurobiClassificationSolver``:
+
+    ::
+
+        >>> from yaplf.data import LabeledExample
+        >>> and_sample = [LabeledExample((1, 1), 1),
+        ... LabeledExample((0, 0), -1), LabeledExample((0, 1), -1),
+        ... LabeledExample((1, 0), -1)]
+        >>> from yaplf.algorithms.svm.classification.solvers import \
+        ... GurobiClassificationSolver
+        >>> s = GurobiClassificationSolver()
+
+    Once the solver instance is available, it is possible to invoke its
+    ``solve``function, specifying a labeled sample such as ``and_sample``, a
+    positive value for the constant `c` and a kernel instance in order
+    to get the solution of the corresponding SV classification optimization
+    problem:
+
+    ::
+
+        >>> from yaplf.models.kernel import LinearKernel
+        >>> s.solve(and_sample, 2, LinearKernel())
+        [2, 0, 0.999999999992222, 0.999999999992222]
+
+    The value for `c` can be set to ``float('inf')``, in order to build and
+    solve the original optimization problem rather than the soft-margin
+    formulation:
+
+    ::
+
+        >>> s.solve(and_sample, float('inf'), LinearKernel())
+        [4.00000000000204, 0, 1.999999999976717, 1.99999999997672]
+
+    Note however that this class should never be used directly. It is
+    automatically used by ``SVMClassificationAlgorithm``.
+
+    REFERENCES:
+
+    [Cortes and Vapnik, 1995] Corinna Cortes and Vladimir Vapnik,
+    Support-Vector Networks, Machine Learning 20 (1995), 273--297.
+
+    AUTHORS:
+
+    - Dario Malchiodi (2014-01-20)
+
+    """
+
+    def __init__(self, verbose=False):
+        r"""
+        See ``GurobiClassificationSolver`` for full documentation.
+
+        """
+
+        try:
+            gurobipy.os
+        except NameError:
+            raise NotImplementedError("gurobipy package not available")
+
+        SVMClassificationSolver.__init__(self)
+        self.verbose = verbose
+
+    def solve(self, sample, unlabeled_sample=[], c=float('inf'), kernel=LinearKernel(),
+              tolerance=1e-6):
+        m = len(sample)
+        n = len(unlabeled_sample)
+        patterns = [e.pattern for e in sample]
+        labels = [e.label for e in sample]
+
+        GRB=gurobipy.GRB
+        model = gurobipy.Model('classify')
+        for i in range(m):
+            model.addVar(name='alpha_%d' % i, lb=0, ub=100, vtype=GRB.CONTINUOUS)
+
+        for u in range(n):
+            model.addVar(name='gamma_%d' % u, lb=0, vtype=GRB.CONTINUOUS)
+            model.addVar(name='delta_%d' % u, lb=0, vtype=GRB.CONTINUOUS)
+
+        model.update()
+        allVars = model.getVars()
+        alphas = allVars[:m]
+        gammas = allVars[m:m+n]
+        deltas = allVars[-n:]
+        k=kernel.compute
+        obj = gurobipy.QuadExpr() + sum(alphas)
+        for i in range(m):
+            for j in range(m):
+                obj.add(alphas[i] * alphas[j] * labels[i] * labels[j] * k(patterns[i], patterns[j]), -0.5)
+            for u in range(n):
+                obj.add(alphas[i] * labels[i] * (gammas[u] - deltas[u]) * k(patterns[i], unlabeled_sample[u]), -1.0)
+
+        for u in range(n):
+            for v in range(n):
+                obj.add((gammas[u] - deltas[u]) * (gammas[v] - deltas[v]) * k( unlabeled_sample[u], unlabeled_sample[v]), -0.5)
+
+        model.setObjective(obj, GRB.MAXIMIZE)
+
+        constEqual = gurobipy.LinExpr()
+        for i in range(m):
+            constEqual.add(alphas[i] *labels[i], 1.0)
+
+        for u in range(n):
+            constEqual.add(gammas[u] - deltas[u], 1.0)
+
+        model.addConstr(constEqual, GRB.EQUAL, 0)
+
+        constLess = gurobipy.LinExpr()
+        for u in range(n):
+            constLess.add(gammas[u] + deltas[u], 1.0)
+
+        model.addConstr(constLess, GRB.LESS_EQUAL, 1)
+
+        model.optimize()
+        alphas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in alphas]
+
+        return alphas_opt
+
+
+
+
 
 # Needed in order to use cvxopt within sage
 Integer = int

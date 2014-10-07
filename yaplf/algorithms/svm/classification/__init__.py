@@ -45,7 +45,7 @@ from numpy import mean
 
 from yaplf.algorithms import LearningAlgorithm
 from yaplf.models.kernel import LinearKernel
-from yaplf.models.svm import SVMClassifier, check_svm_classification_sample
+from yaplf.models.svm import SVMClassifier, check_svm_classification_sample, check_svm_classification_unlabeled_sample
 from yaplf.algorithms.svm.classification.solvers import GurobiClassificationSolver
 
 
@@ -185,7 +185,7 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
     """
 
-    def __init__(self, sample, **kwargs):
+    def __init__(self, sample, unlabeled_sample=[], **kwargs):
         r"""
         See ``SVMClassificationAlgorithm`` for full documentation.
 
@@ -193,9 +193,10 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
+        check_svm_classification_unlabeled_sample(unlabeled_sample)
         self.sample = sample
         self.model = None
-
+        self.unlabeled_sample=unlabeled_sample
         try:
             self.c = kwargs['c']
         except KeyError:
@@ -276,9 +277,10 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
         - Dario Malchiodi (2010-02-22)
 
         """
-
-        alpha = self.solver.solve(self.sample, self.c, self.kernel)
-
+        if len(self.unlabeled_sample)<1:
+            alpha = self.solver.solve(self.sample, self.c, self.kernel)
+        else:
+            alpha =self.solver.solve(self.sample, self.unlabeled_sample,self.c, self.kernel)
         num_examples = len(self.sample)
 
         if self.c == float('inf'):

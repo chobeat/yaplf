@@ -126,7 +126,8 @@ def check_svm_classification_sample(sample):
         - Dario Malchiodi (2010-02-22)
 
     """
-
+    if len(sample)<1:
+        raise ValueError("Empty sample")
     dim = len(sample[0].pattern)
 
     if abs(sample[0].label) != 1:
@@ -141,6 +142,17 @@ same dimension')
             raise ValueError('SVM classification labels should be set either \
 to -1 or to 1')
 
+
+def check_svm_classification_unlabeled_sample(unlabeled_sample):
+
+    if len(unlabeled_sample)<1:
+        raise ValueError("Empty sample")
+
+    dim=len(unlabeled_sample[0])
+    for elem in unlabeled_sample[1:]:
+        if len(elem) != dim:
+             raise ValueError('SVM classification patterns should have the \
+same dimension')
 
 class SVMClassifier(Classifier):
     r"""

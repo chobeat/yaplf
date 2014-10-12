@@ -1027,6 +1027,7 @@ class AMPLKernelFactory(object):
                              + 'not analytically representable')
 
 class GurobiS3VMClassificationSolver(SVMClassificationSolver):
+
     r"""
     SVM Classification solver based on gurobi. This solver is specialized in
     finding the approximate solution of the optimization problem described in
@@ -1159,8 +1160,10 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
 
         model.optimize()
         alphas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in alphas]
+        gammas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in gammas]
+        deltas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in deltas]
 
-        return alphas_opt
+        return (alphas_opt,gammas_opt,deltas_opt)
 
 
 

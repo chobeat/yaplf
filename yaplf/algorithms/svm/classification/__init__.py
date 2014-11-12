@@ -1,4 +1,3 @@
-
 r"""
 Package handling SV classification learning algorithms in yaplf.
 
@@ -23,7 +22,7 @@ AUTHORS:
 
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2010 Dario Malchiodi <malchiodi@di.unimi.it>
 #
 # This file is part of yaplf.
@@ -45,7 +44,7 @@ from numpy import mean
 
 from yaplf.algorithms import LearningAlgorithm
 from yaplf.models.kernel import LinearKernel
-from yaplf.models.svm import SVMClassifier, check_svm_classification_sample, check_svm_classification_unlabeled_sample
+from yaplf.models.svm import SVMClassifier, S3VMClassifier,check_svm_classification_sample, check_svm_classification_unlabeled_sample
 from yaplf.algorithms.svm.classification.solvers import GurobiClassificationSolver, GurobiS3VMClassificationSolver
 
 
@@ -185,7 +184,8 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
     """
 
-    def __init__(self, sample, unlabeled_sample=[], c=None,kernel=LinearKernel(), solver=GurobiClassificationSolver(),  **kwargs):
+    def __init__(self, sample, unlabeled_sample=[], c=None, kernel=LinearKernel(), solver=GurobiClassificationSolver(),
+                 **kwargs):
         r"""
         See ``SVMClassificationAlgorithm`` for full documentation.
 
@@ -194,13 +194,14 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
         self.sample = sample
-        self.solver=solver
-        self.c=c
+        self.solver = solver
+        self.c = c
 
-        if(c and c<=0):
+        if (c and c <= 0):
             raise ValueError("Parameter C must be positive")
 
-        self.kernel=kernel
+        self.kernel = kernel
+
     def run(self):
         r"""
         Run the SVM classification learning algorithm.
@@ -265,45 +266,33 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
         - Dario Malchiodi (2010-02-22)
 
         """
-        alpha = self.solver.solve(self.sample, self.c or float("inf"), self.kernel)
 
-        num_examples = len(self.sample)
-        def overHardMargin(x):
-            return (not self.c) or x<self.c
+        solution = self.solver.solve(self.sample, self.c or float("inf"), self.kernel)
 
-        threshold = mean([self.sample[i].label -
-                sum([alpha[j] * self.sample[j].label *
-                self.kernel.compute(self.sample[j].pattern,
-                self.sample[i].pattern) for j in range(num_examples)])
-                for i in range(num_examples)
-                if alpha[i] > 0 and overHardMargin(alpha[i])])
-
-        self.model = SVMClassifier(alpha, threshold, self.sample,
-            kernel=self.kernel)
-
-
-
-
+        self.model = SVMClassifier(solution, self.c, self.sample,
+                                   kernel=self.kernel)
 
 
 class S3VMClassificationAlgorithm(LearningAlgorithm):
-
-    def __init__(self, sample, unlabeled_sample=[], c=None, solver=GurobiS3VMClassificationSolver, kernel=LinearKernel(),**kwargs):
-
+    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, solver=GurobiS3VMClassificationSolver(),
+                 kernel=LinearKernel(), **kwargs):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
-        check_svm_classification_unlabeled_sample(unlabeled_sample)
+        #        check_svm_classification_unlabeled_sample(unlabeled_sample)
         self.sample = sample
-        self.unlabeled_sample=unlabeled_sample
+        self.unlabeled_sample = unlabeled_sample
 
-        self.solver=solver
-        self.c=c
+        self.solver = solver
+        self.c = c
+        self.d = d
+        self.e = e
 
-        if(c and c<=0):
+        if (c and c <= 0):
             raise ValueError("Parameter C must be positive")
 
-        self.kernel=kernel
+        self.kernel = kernel
 
     def run(self):
-        alpha,gammas,deltas =self.solver.solve(self.sample, self.unlabeled_sample,self.c, self.kernel)
-        num_examples = len(self.sample)
+        solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
+                                                  self.kernel)
+        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.kernel)

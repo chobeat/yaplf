@@ -1108,8 +1108,9 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
         SVMClassificationSolver.__init__(self)
         self.verbose = verbose
 
-    def solve(self, sample, unlabeled_sample=[], c=float('inf'), kernel=LinearKernel(),
+    def solve(self, sample, unlabeled_sample=[], c=float('inf'),d=1,e=1, kernel=LinearKernel(),
               tolerance=1e-6):
+        print c,d,e
         m = len(sample)
         n = len(unlabeled_sample)
         patterns = [e.pattern for e in sample]
@@ -1159,9 +1160,10 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
         model.addConstr(constLess, GRB.LESS_EQUAL, 1)
 
         model.optimize()
-        alphas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in alphas]
-        gammas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in gammas]
-        deltas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in deltas]
+        alphas_opt = [chop(a.x, tolerance=tolerance) for a in alphas]
+
+        gammas_opt = [chop(a.x,  tolerance=tolerance) for a in gammas]
+        deltas_opt = [chop(a.x,  tolerance=tolerance) for a in deltas]
 
         return (alphas_opt,gammas_opt,deltas_opt)
 

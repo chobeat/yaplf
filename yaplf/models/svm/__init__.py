@@ -37,13 +37,13 @@ AUTHORS:
 #*****************************************************************************
 
 
-from numpy import sign, dot
+from yaplf.models.kernel import LinearKernel
+from numpy import sign, dot,mean
 #from matplotlib.cm import Greys
 
 from yaplf.models import Classifier
 from yaplf.models.kernel import Kernel
 from yaplf.data import LabeledExample
-
 
 def check_svm_classification_sample(sample):
     r"""
@@ -146,7 +146,7 @@ to -1 or to 1')
 def check_svm_classification_unlabeled_sample(unlabeled_sample):
 
     if len(unlabeled_sample)<1:
-        raise ValueError("Empty sample")
+        return
 
     dim=len(unlabeled_sample[0])
     for elem in unlabeled_sample[1:]:
@@ -278,13 +278,18 @@ class SVMClassifier(Classifier):
 
     """
 
-    def __init__(self, alpha, threshold, sample, **kwargs):
+
+
+    def overHardMargin(self,x):
+           return (not self.c) or x<self.c
+
+    def __init__(self, alpha, c, sample, kernel=LinearKernel(), **kwargs):
         r"""See ``SVMClassifier`` for full documentation.
 
         """
 
         Classifier.__init__(self)
-
+        self.c=c
         num_patterns = len(sample)
         check_svm_classification_sample(sample)
         self.dim = len(sample[0].pattern)
@@ -294,16 +299,20 @@ class SVMClassifier(Classifier):
 not have the same size')
 
         self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
-        
+        self.kernel=kernel
         self.support_vectors = [sample[i].pattern for i in self.sv_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
             for i in self.sv_indices]
-        self.threshold = threshold
 
-        try:
-            self.kernel = kwargs['kernel']
-        except KeyError:
-            self.kernel = Kernel.get_default()
+
+        self.threshold = mean([sample[i].label -
+                sum([alpha[j] * sample[j].label *
+                self.kernel.compute(sample[j].pattern,
+                sample[i].pattern) for j in range(num_patterns)])
+                for i in range(num_patterns)
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
+
+
 
     def __repr__(self):
         alpha = [abs(a) for a in self.signed_alphas]
@@ -439,3 +448,43 @@ SVM dimension')
         """
 
         return sign(self.decision_function(pattern))
+
+class S3VMClassifier(Classifier):
+
+
+
+    def overHardMargin(self,x):
+           return (not self.c) or x<self.c
+
+    def __init__(self, solution, sample, unlabeled_sample,c, kernel=LinearKernel(), **kwargs):
+
+        r"""See ``SVMClassifier`` for full documentation.
+
+        """
+        alpha,gamma,delta=solution
+        Classifier.__init__(self)
+        self.kernel=kernel
+        self.c=c
+        num_patterns = len(sample)
+        num_unlabeled_patterns=len(unlabeled_sample)
+        check_svm_classification_sample(sample)
+        check_svm_classification_unlabeled_sample(unlabeled_sample)
+        self.dim = len(sample[0].pattern)
+        if len(alpha) != num_patterns:
+            raise ValueError('The supplied sample and multipliers vector do \
+not have the same size')
+
+        threshold_l=mean([sample[i].label -
+                sum([alpha[j] * sample[j].label *
+                self.kernel.compute(sample[j].pattern,
+                sample[i].pattern) for j in range(num_patterns)])
+                for i in range(num_patterns)
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
+
+        threshold_r=mean([sum([gamma[s] * delta[s] *
+                self.kernel.compute(unlabeled_sample[s],
+                unlabeled_sample[t]) for s in range(num_unlabeled_patterns)]) for t in range(num_unlabeled_patterns)])
+        self.threshold =threshold_l+threshold_r
+        print threshold_r
+        print threshold_l
+        print self.threshold

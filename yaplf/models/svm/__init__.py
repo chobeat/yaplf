@@ -297,9 +297,9 @@ class SVMClassifier(Classifier):
         if len(alpha) != num_patterns:
             raise ValueError('The supplied sample and multipliers vector do \
 not have the same size')
-
-        self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
         self.kernel=kernel
+        self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
+
         self.support_vectors = [sample[i].pattern for i in self.sv_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
             for i in self.sv_indices]
@@ -485,6 +485,31 @@ not have the same size')
                 self.kernel.compute(unlabeled_sample[s],
                 unlabeled_sample[t]) for s in range(num_unlabeled_patterns)]) for t in range(num_unlabeled_patterns)])
         self.threshold =threshold_l+threshold_r
-        print threshold_r
-        print threshold_l
-        print self.threshold
+        self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
+
+        self.support_vectors = [sample[i].pattern for i in self.sv_indices]
+        self.signed_alphas = [alpha[i] * sample[i].label
+            for i in self.sv_indices]
+        self.svu_indices=[s for s in range(len(gamma)) if gamma[s]!=0 or delta[s]!=0]
+        self.unlabeled_support_vectors = [sample[s].pattern for s in self.svu_indices]
+
+        self.gamma_delta=[gamma[s]-delta[s] for s in self.svu_indices]
+
+    def decision_function(self, pattern):
+
+        if len(pattern) != self.dim:
+            raise ValueError('The supplied pattern is incompatible with the \
+SVM dimension')
+
+        kernel_values = [self.kernel.compute(x, pattern)
+            for x in self.support_vectors]
+        kernel_unlabeled_values = [self.kernel.compute(x, pattern)
+            for x in self.unlabeled_support_vectors]
+
+        return dot(kernel_values,self.signed_alphas)+dot(kernel_unlabeled_values,self.gamma_delta)+self.threshold
+
+    def intube(self,pattern):
+        pass
+
+    def compute(self, pattern):
+        return sign(self.decision_function(pattern))

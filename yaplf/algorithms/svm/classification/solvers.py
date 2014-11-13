@@ -1113,17 +1113,17 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
         print c,d,e
         m = len(sample)
         n = len(unlabeled_sample)
-        patterns = [e.pattern for e in sample]
-        labels = [e.label for e in sample]
+        patterns = [a.pattern for a in sample]
+        labels = [a.label for a in sample]
 
         GRB=gurobipy.GRB
         model = gurobipy.Model('classify')
         for i in range(m):
-            model.addVar(name='alpha_%d' % i, lb=0, ub=100, vtype=GRB.CONTINUOUS)
+            model.addVar(name='alpha_%d' % i, lb=0, ub=c, vtype=GRB.CONTINUOUS)
 
         for u in range(n):
-            model.addVar(name='gamma_%d' % u, lb=0, vtype=GRB.CONTINUOUS)
-            model.addVar(name='delta_%d' % u, lb=0, vtype=GRB.CONTINUOUS)
+            model.addVar(name='gamma_%d' % u, lb=0, ub=d,vtype=GRB.CONTINUOUS)
+            model.addVar(name='delta_%d' % u, lb=0, ub=d,vtype=GRB.CONTINUOUS)
 
         model.update()
         allVars = model.getVars()
@@ -1132,6 +1132,7 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
         deltas = allVars[-n:]
         k=kernel.compute
         obj = gurobipy.QuadExpr() + sum(alphas)
+
         for i in range(m):
             for j in range(m):
                 obj.add(alphas[i] * alphas[j] * labels[i] * labels[j] * k(patterns[i], patterns[j]), -0.5)
@@ -1157,13 +1158,13 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
         for u in range(n):
             constLess.add(gammas[u] + deltas[u], 1.0)
 
-        model.addConstr(constLess, GRB.LESS_EQUAL, 1)
+        model.addConstr(constLess, GRB.LESS_EQUAL, float(e))
 
         model.optimize()
-        alphas_opt = [chop(a.x, tolerance=tolerance) for a in alphas]
+        alphas_opt = [chop(a.x, right=c, tolerance=tolerance) for a in alphas]
 
-        gammas_opt = [chop(a.x,  tolerance=tolerance) for a in gammas]
-        deltas_opt = [chop(a.x,  tolerance=tolerance) for a in deltas]
+        gammas_opt = [chop(a.x, right=d, tolerance=tolerance) for a in gammas]
+        deltas_opt = [chop(a.x, right=d, tolerance=tolerance) for a in deltas]
 
         return (alphas_opt,gammas_opt,deltas_opt)
 

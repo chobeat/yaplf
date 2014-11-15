@@ -458,7 +458,7 @@ class S3VMClassifier(Classifier):
 
     def __init__(self, solution, sample, unlabeled_sample,c, kernel=LinearKernel(), **kwargs):
 
-        r"""See ``SVMClassifier`` for full documentation.
+        r"""See ``S3VMClassifier`` for full documentation.
 
         """
         alpha,gamma,delta=solution
@@ -474,26 +474,54 @@ class S3VMClassifier(Classifier):
             raise ValueError('The supplied sample and multipliers vector do \
 not have the same size')
 
+        #these multiplication are used both in the computation of b and epsilon, therefore are saved as variable
+        all_signed_alpha=[alpha[i] * sample[i].label
+            for i in range(len(alpha))]
+        all_gamma_delta=[gamma[s] - delta[s] for s in range(num_unlabeled_patterns)]
+
+
+        #left part of the threshold b
         threshold_l=mean([sample[i].label -
-                sum([alpha[j] * sample[j].label *
+                sum([all_signed_alpha[j] *
                 self.kernel.compute(sample[j].pattern,
                 sample[i].pattern) for j in range(num_patterns)])
                 for i in range(num_patterns)
                 if alpha[i] > 0 and self.overHardMargin(alpha[i])])
 
-        threshold_r=mean([sum([gamma[s] * delta[s] *
+        #right part of threshold b
+        threshold_r=mean([sum([all_gamma_delta[s] *
                 self.kernel.compute(unlabeled_sample[s],
                 unlabeled_sample[t]) for s in range(num_unlabeled_patterns)]) for t in range(num_unlabeled_patterns)])
-        self.threshold =threshold_l+threshold_r
+        self.threshold =threshold_l-threshold_r
+
+        #indices of tube's support vectors
+        gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0]
+        delta_tube_indices=[s for s in range(len(unlabeled_sample))if delta[s]>0]
+
+        self.unlabeled_support_vectors_indices=[s for s in gamma_tube_indices+delta_tube_indices]
+        self.unlabeled_support_vectors=[unlabeled_sample[s] for s in self.unlabeled_support_vectors_indices]
+
+        self.tube_radius_p=mean([sample[i].label -
+                sum([all_signed_alpha[j] *
+                self.kernel.compute(sample[j].pattern,
+                sample[i].pattern) for j in range(num_patterns)])
+                for i in range(num_patterns)
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
+
+        self.tube_radius_n=1
+
+
+        self.tube_radius=(self.tube_radius_n+self.tube_radius_p)/2
+
+
+        #indices of support vectors
         self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
 
         self.support_vectors = [sample[i].pattern for i in self.sv_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
             for i in self.sv_indices]
-        self.svu_indices=[s for s in range(len(gamma)) if gamma[s]!=0 or delta[s]!=0]
-        self.unlabeled_support_vectors = [sample[s].pattern for s in self.svu_indices]
+        self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
-        self.gamma_delta=[gamma[s]-delta[s] for s in self.svu_indices]
 
     def decision_function(self, pattern):
 
@@ -509,6 +537,16 @@ SVM dimension')
         return dot(kernel_values,self.signed_alphas)+dot(kernel_unlabeled_values,self.gamma_delta)+self.threshold
 
     def intube(self,pattern):
+        r"""
+        INPUT:
+
+        - ``self`` -- SVMClassifier object on which the function is invoked.
+
+        - ``pattern`` -- pattern whose corresponding class is to be computed.
+
+        OUTPUT: True if the supplied pattern is inside the epsilon-tube, False otherwise
+
+        """
         pass
 
     def compute(self, pattern):

@@ -13,16 +13,23 @@ class Test(unittest.TestCase):
         correct_guess=[alg.model.compute(i.pattern)==i.label for i in test_set]
         return correct_guess
 
+    def base_tube_test(self,labeled,unlabeled,test_set):
+        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=0.25,e=0.25)
+        alg.run() # doctest:+ELLIPSIS
+
+        return alg.model.intube(test_set[0].pattern)
+
+
     def generate_simple_dataset(self):
         """
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate([-1,-1],10,0.2,-1)
-        pos=self.generate([0.5,0.5],10,0.2,1)
+        neg=self.generate([-10,-10],10,0.2,-1)
+        pos=self.generate([10,10],10,0.2,1)
         labeled=pos+neg
         unlabeled=self.generate([0,0],5,1)
-        test_set=[LabeledExample([-1,-1],-1),LabeledExample([0,0],1)]
+        test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
         return [labeled,unlabeled,test_set]
 
     def generate(self,center,size,scattering,label=None):
@@ -45,3 +52,7 @@ class Test(unittest.TestCase):
         labeled,unlabeled,test_set=self.generate_simple_dataset()
 
         print self.base_classification_test(labeled,unlabeled,test_set)
+    def test_tube(self):
+
+        labeled,unlabeled,test_set=self.generate_simple_dataset()
+        print self.base_tube_test(labeled,unlabeled,test_set)

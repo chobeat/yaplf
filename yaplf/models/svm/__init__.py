@@ -44,7 +44,7 @@ from numpy import sign, dot,mean
 from yaplf.models import Classifier
 from yaplf.models.kernel import Kernel
 from yaplf.data import LabeledExample
-
+import math
 def check_svm_classification_sample(sample):
     r"""
     Checks whether the supplied sample is properly formatted in order to use it
@@ -544,7 +544,12 @@ SVM dimension')
         OUTPUT: True if the supplied pattern is inside the epsilon-tube, False otherwise
 
         """
-        pass
+        num=mean(self.decision_function(pattern)+self.threshold)
+        den=math.sqrt(mean([self.kernel.compute(i,i) for i in pattern]))
+
+        distance=num/den
+        return math.fabs(distance)<self.tube_radius
+
 
     def compute(self, pattern):
         return sign(self.decision_function(pattern))

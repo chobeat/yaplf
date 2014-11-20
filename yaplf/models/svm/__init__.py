@@ -456,7 +456,7 @@ class S3VMClassifier(Classifier):
     def overHardMargin(self,x):
            return (not self.c) or x<self.c
 
-    def __init__(self, solution, sample, unlabeled_sample,c, kernel=LinearKernel(), **kwargs):
+    def __init__(self, solution, sample, unlabeled_sample,c,d, kernel=LinearKernel(), **kwargs):
 
         r"""See ``S3VMClassifier`` for full documentation.
 
@@ -491,14 +491,15 @@ not have the same size')
         #right part of threshold b
         threshold_r=mean([sum([all_gamma_delta[s] *
                 self.kernel.compute(unlabeled_sample[s],
-                unlabeled_sample[t]) for s in range(num_unlabeled_patterns)]) for t in range(num_unlabeled_patterns)])
+                sample[i].pattern) for s in range(num_unlabeled_patterns)]) for i in range(num_patterns)
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
         self.threshold =threshold_l-threshold_r
 
         #indices of tube's support vectors
-        gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0]
-        delta_tube_indices=[s for s in range(len(unlabeled_sample))if delta[s]>0]
+        gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0 and gamma[s]<d]
+        delta_tube_indices=[s for s in range(len(unlabeled_sample))if delta[s]>0 and delta[s]<d]
 
-        self.unlabeled_support_vectors_indices=gamma_tube_indices+delta_tube_indices
+        self.unlabeled_support_vectors_indices=[s for s in range(len(unlabeled_sample)) if gamma[s]==0 or delta[s]==0]
         self.unlabeled_support_vectors=[unlabeled_sample[s] for s in self.unlabeled_support_vectors_indices]
 
         #indices of support vectors
@@ -509,14 +510,18 @@ not have the same size')
             for i in self.sv_indices]
         self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
-        self.tube_radius=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])])+
+        tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
                 +self.threshold
-                for s in self.unlabeled_support_vectors_indices])
+                for s in delta_tube_indices])
 
+        tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
+                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
+                +self.threshold
+                for s in gamma_tube_indices]))
 
-
+        self.tube_radius=(tube_radius_n+tube_radius_p)/2
+        print self.tube_radius
 
 
 
@@ -544,10 +549,8 @@ SVM dimension')
         OUTPUT: True if the supplied pattern is inside the epsilon-tube, False otherwise
 
         """
-        num=mean(self.decision_function(pattern)+self.threshold)
-        den=math.sqrt(mean([self.kernel.compute(i,i) for i in pattern]))
+        distance=self.decision_function(pattern)
 
-        distance=num/den
         return math.fabs(distance)<self.tube_radius
 
 

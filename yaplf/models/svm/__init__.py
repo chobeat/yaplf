@@ -461,6 +461,7 @@ class S3VMClassifier(Classifier):
         r"""See ``S3VMClassifier`` for full documentation.
 
         """
+        self.solution=solution
         alpha,gamma,delta=solution
         Classifier.__init__(self)
         self.kernel=kernel
@@ -510,15 +511,19 @@ not have the same size')
             for i in self.sv_indices]
         self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
-        tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
+        if len(delta_tube_indices)>0:
+            tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
                 +self.threshold
                 for s in delta_tube_indices])
+        else: tube_radius_p=0
 
-        tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
+        if len(gamma_tube_indices)>0:
+            tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
                 +self.threshold
                 for s in gamma_tube_indices]))
+        else: tube_radius_n=0
 
         self.tube_radius=(tube_radius_n+tube_radius_p)/2
         print self.tube_radius

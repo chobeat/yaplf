@@ -2,7 +2,10 @@ from yaplf.data import LabeledExample
 from yaplf.algorithms.svm.classification.solvers import *
 from yaplf.algorithms.svm.classification import *
 from yaplf.models.svm.plot import *
+import warnings
+
 import random
+warnings.simplefilter("error")
 def read_webspam():
     with open("feat.csv","r") as f:
         feat= [i.split(",") for i in f][1:]
@@ -18,9 +21,9 @@ def read_webspam():
     unlabeled_dataset=[j for i,j in feat_dict.iteritems() if not labels_dict.__contains__(i)]
 
 
-    test_set=labeled_dataset[:100]
-    training_set=labeled_dataset[301:450]
-    unlabeled_dataset=unlabeled_dataset[:1000]
+    test_set=labeled_dataset[:250]
+    training_set=labeled_dataset[251:600]
+    unlabeled_dataset=unlabeled_dataset[:150]
     return training_set,unlabeled_dataset,test_set
 
 import pickle
@@ -38,20 +41,47 @@ def read_dataset_temp():
 #ds=read_webspam()
 #write_dataset_temp(ds)
 training_set,unlabeled_dataset,test_set=read_dataset_temp()
-
 """
-alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=0.25,e=0.25)
+to_print=[]
+for c_i in [1]:
+    for d_i in [1]:
+        for e_f in [1.02]:
+            e_i=e_f*len(unlabeled_dataset)
+            alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=c_i,d=d_i,e=e_i)
+            alg.run() # doctest:+ELLIPSIS
+            res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+            to_print.append(["c: "+str(c_i),"d: "+str(d_i),"e: "+str(e_i),float(sum(res))/(len(test_set))])
 
-alg.run() # doctest:+ELLIPSIS
-
-
-
+for i in to_print:
+    print i
+"""
+"""random.shuffle(unlabeled_dataset)"""
+unlabeled_dataset=unlabeled_dataset[0:110]
+training_set=training_set[:20]
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=0.8,d=1,e=110)
+alg.run()
+#print alg.model.intube(unlabeled_dataset[0])
+in_tube=[1 for x in unlabeled_dataset if alg.model.intube(x)]
+print len(in_tube)
+"""
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
-print float(sum(res))/(len(test_set)+len(training_set))
+print float(sum(res))/(len(test_set))
+
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=f*1.5,d=1,e=len(unlabeled_dataset))
+alg.run()
+res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+print float(sum(res))/(len(test_set))
+
+
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=f*0.5,d=1,e=len(unlabeled_dataset))
+alg.run()
+res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+print float(sum(res))/(len(test_set))
+
 
 alg = SVMClassificationAlgorithm(training_set,c=1)
 
 alg.run() # doctest:+ELLIPSIS
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
 
-print float(sum(res))/(len(test_set)+len(training_set))"""
+print float(sum(res))/(len(test_set))"""

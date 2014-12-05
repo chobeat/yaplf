@@ -1165,7 +1165,6 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
 
         gammas_opt = [chop(a.x, right=d, tolerance=tolerance) for a in gammas]
         deltas_opt = [chop(a.x, right=d, tolerance=tolerance) for a in deltas]
-
         return (alphas_opt,gammas_opt,deltas_opt)
 
 

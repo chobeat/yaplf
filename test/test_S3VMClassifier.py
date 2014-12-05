@@ -9,7 +9,6 @@ warnings.simplefilter("error")
 def randrange_float(start, stop, step):
     return random.randint(0, int((stop - start) / step)) * step + start
 r=randrange_float
-
 class Test(unittest.TestCase):
     """Unit tests for S3VMClassifier module of yaplf."""
 
@@ -19,14 +18,7 @@ class Test(unittest.TestCase):
         correct_guess=[alg.model.compute(i.pattern)==i.label for i in test_set]
         return correct_guess
 
-    def base_tube_test(self,labeled,unlabeled,test_set):
-        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=0.25,e=0.25)
-        alg.run() # doctest:+ELLIPSIS
-        m=alg.model
-        intube_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
 
-        print [(m.solution[1][i],m.solution[2][i]) for i in intube_indices]
-        return alg.model.intube(test_set[0].pattern)
 
 
 
@@ -67,8 +59,15 @@ class Test(unittest.TestCase):
 
     def test_simple(self):
         labeled,unlabeled,test_set=self.generate_simple_dataset()
+        self.assertTrue()
 
        # print self.base_classification_test(labeled,unlabeled,test_set)
+
     def test_tube(self):
         labeled,unlabeled,test_set=self.generate_simple_dataset()
-        print self.base_tube_test(labeled,unlabeled,test_set)
+        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=0.25,e=0.25)
+        alg.run() # doctest:+ELLIPSIS
+        m=alg.model
+        intube_post_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
+        intube_model_indices=m.in_tube_unlabeled_indicess
+        self.assertEqual(intube_model_indices,intube_post_indices)

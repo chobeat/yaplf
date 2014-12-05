@@ -482,18 +482,30 @@ not have the same size')
 
 
         #left part of the threshold b
-        threshold_l=mean([sample[i].label -
+        threshold_l_t=[sample[i].label -
                 sum([all_signed_alpha[j] *
                 self.kernel.compute(sample[j].pattern,
                 sample[i].pattern) for j in range(num_patterns)])
                 for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])]
+
+        if len(threshold_l_t)>0:
+            threshold_l=mean(threshold_l_t)
+        else:
+            threshold_l=0
 
         #right part of threshold b
-        threshold_r=mean([sum([all_gamma_delta[s] *
+        threshold_r_t=[sum([all_gamma_delta[s] *
                 self.kernel.compute(unlabeled_sample[s],
                 sample[i].pattern) for s in range(num_unlabeled_patterns)]) for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
+                if alpha[i] > 0 and self.overHardMargin(alpha[i])]
+
+        if len(threshold_r_t)>0:
+            threshold_r=mean(threshold_r_t)
+        else:
+            threshold_r=0
+
+
         self.threshold =threshold_l-threshold_r
 
         #indices of tube's support vectors
@@ -511,6 +523,7 @@ not have the same size')
             for i in self.sv_indices]
         self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
+
         if len(delta_tube_indices)>0:
             tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
@@ -519,16 +532,16 @@ not have the same size')
         else: tube_radius_p=0
 
         if len(gamma_tube_indices)>0:
-            tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
+            tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])-
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
                 +self.threshold
                 for s in gamma_tube_indices]))
         else: tube_radius_n=0
-
+        #print tube_radius_n,tube_radius_p
         self.tube_radius=(tube_radius_n+tube_radius_p)/2
-        print self.tube_radius
-
-
+        #print self.tube_radius
+        self.in_tube_unlabeled_indicess=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
+        print self.in_tube_unlabeled_points
 
     def decision_function(self, pattern):
 
@@ -555,7 +568,7 @@ SVM dimension')
 
         """
         distance=self.decision_function(pattern)
-
+        #print math.fabs(distance),self.tube_radius
         return math.fabs(distance)<self.tube_radius
 
 

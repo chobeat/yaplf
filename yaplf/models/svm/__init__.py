@@ -39,8 +39,9 @@ AUTHORS:
 
 from yaplf.models.kernel import LinearKernel
 from numpy import sign, dot,mean
-#from matplotlib.cm import Greys
-
+from numpy import arange,array,ones,linalg
+from pylab import plot,show
+from sklearn import linear_model
 from yaplf.models import Classifier
 from yaplf.models.kernel import Kernel
 from yaplf.data import LabeledExample
@@ -541,7 +542,13 @@ not have the same size')
         self.tube_radius=(tube_radius_n+tube_radius_p)/2
         #print self.tube_radius
         self.in_tube_unlabeled_indicess=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
-        print self.in_tube_unlabeled_points
+
+        #regression
+        clf = linear_model.LinearRegression()
+        fitting_sample=[[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
+        clf.fit (*fitting_sample)
+        print clf.coef_,self
+
 
     def decision_function(self, pattern):
 

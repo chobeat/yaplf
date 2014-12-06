@@ -12,8 +12,8 @@ r=randrange_float
 class Test(unittest.TestCase):
     """Unit tests for S3VMClassifier module of yaplf."""
 
-    def base_classification_test(self,labeled,unlabeled,test_set):
-        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=0.25,e=0.25)
+    def base_classification(self,labeled,unlabeled,test_set):
+        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=5)
         alg.run() # doctest:+ELLIPSIS
         correct_guess=[alg.model.compute(i.pattern)==i.label for i in test_set]
         return correct_guess
@@ -28,11 +28,11 @@ class Test(unittest.TestCase):
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([-1,-1],10,0.1,-1)
-        pos=self.generate_from_point([1,1],10,0.1,1)
+        neg=self.generate_from_point([-1,-1,-1],10,0,-1)
+        pos=self.generate_from_point([1,1,1],10,0,1)
         labeled=pos+neg
-        unlabeled=self.generate_from_point([0,0],20,0.3)
-        test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
+        unlabeled=self.generate_from_point([-1,-1,-1],1,0,0)+self.generate_from_point([1,1,1],1,0,0)
+        test_set=[LabeledExample([-0.1,-0.1,1],-1),LabeledExample([0,0,1],1)]
         return [labeled,unlabeled,test_set]
 
     def generate_from_point(self,center,size,scattering,label=None):
@@ -58,11 +58,11 @@ class Test(unittest.TestCase):
         return [i for j in l for i in j ]
 
     def test_simple(self):
-        labeled,unlabeled,test_set=self.generate_simple_dataset()
-        self.assertTrue()
+        d=self.base_classification(*self.generate_simple_dataset())
+        print d
 
        # print self.base_classification_test(labeled,unlabeled,test_set)
-
+"""
     def test_tube(self):
         labeled,unlabeled,test_set=self.generate_simple_dataset()
         alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=0.25,e=0.25)
@@ -71,3 +71,4 @@ class Test(unittest.TestCase):
         intube_post_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
         intube_model_indices=m.in_tube_unlabeled_indicess
         self.assertEqual(intube_model_indices,intube_post_indices)
+"""

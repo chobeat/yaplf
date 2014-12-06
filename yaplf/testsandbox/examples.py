@@ -58,11 +58,10 @@ for i in to_print:
 """random.shuffle(unlabeled_dataset)"""
 unlabeled_dataset=unlabeled_dataset[0:110]
 training_set=training_set[:20]
-alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=0.8,d=1,e=110)
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=10)
 alg.run()
 #print alg.model.intube(unlabeled_dataset[0])
-in_tube=[1 for x in unlabeled_dataset if alg.model.intube(x)]
-print len(in_tube)
+print len(alg.model.in_tube_unlabeled_indicess)
 """
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
 print float(sum(res))/(len(test_set))

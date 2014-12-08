@@ -547,7 +547,19 @@ not have the same size')
         clf = linear_model.LinearRegression()
         fitting_sample=[[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
         clf.fit (*fitting_sample)
-        print clf.coef_,self
+
+        norm_r=math.sqrt(sum(clf.coef_[0]))
+        print norm_r
+        norm_svm=sum(alpha[i]*alpha[j]*sample[i].label*sample[j].label*
+                     kernel.compute(sample[i].pattern,sample[j].pattern)
+                     for i in range(num_patterns) for j in range(num_patterns) )  +sum(
+                        (gamma[s]-delta[s])*(gamma[t]-delta[t])*
+                        kernel.compute(unlabeled_sample[s],unlabeled_sample[t])
+                        for s in range(num_unlabeled_patterns) for t in range(num_unlabeled_patterns))
+        print norm_svm,norm_r
+        svmtr=self.decision_function([0]+list(clf.coef_))
+        print svmtr
+        self.angle=math.degrees(math.acos(svmtr/(norm_r*norm_svm)))
 
 
     def decision_function(self, pattern):

@@ -28,11 +28,11 @@ class Test(unittest.TestCase):
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([-1,-1,-1],10,0,-1)
-        pos=self.generate_from_point([1,1,1],10,0,1)
+        neg=self.generate_from_point([1,0],10,0,-1)
+        pos=self.generate_from_point([-1,0],10,0,1)
         labeled=pos+neg
-        unlabeled=self.generate_from_point([-1,-1,-1],1,0,0)+self.generate_from_point([1,1,1],1,0,0)
-        test_set=[LabeledExample([-0.1,-0.1,1],-1),LabeledExample([0,0,1],1)]
+        unlabeled=self.generate_from_point([-1,-1],1,0,0)+self.generate_from_point([1,1],1,0,0)
+        test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
         return [labeled,unlabeled,test_set]
 
     def generate_from_point(self,center,size,scattering,label=None):

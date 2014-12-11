@@ -13,7 +13,7 @@ class Test(unittest.TestCase):
     """Unit tests for S3VMClassifier module of yaplf."""
 
     def base_classification(self,labeled,unlabeled,test_set):
-        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=5)
+        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=4)
         alg.run() # doctest:+ELLIPSIS
         correct_guess=[alg.model.compute(i.pattern)==i.label for i in test_set]
         return correct_guess
@@ -28,10 +28,11 @@ class Test(unittest.TestCase):
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([1,0],10,0,-1)
-        pos=self.generate_from_point([-1,0],10,0,1)
+        neg=self.generate_from_point([0,0],20,0.1,-1)
+        pos=self.generate_from_point([1,1],20,0.1,1)
         labeled=pos+neg
-        unlabeled=self.generate_from_point([-1,-1],1,0,0)+self.generate_from_point([1,1],1,0,0)
+        unlabeled=self.generate_from_point([0.570710,0.570710],20,0.1,0)
+
         test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
         return [labeled,unlabeled,test_set]
 
@@ -69,6 +70,8 @@ class Test(unittest.TestCase):
         alg.run() # doctest:+ELLIPSIS
         m=alg.model
         intube_post_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
-        intube_model_indices=m.in_tube_unlabeled_indicess
+        intube_model_indices=m.in_tube_unlabeled_indices
+        print intube_post_indices
+        print intube_model_indices
         self.assertEqual(intube_model_indices,intube_post_indices)
 """

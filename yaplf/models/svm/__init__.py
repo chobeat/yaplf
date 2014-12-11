@@ -525,43 +525,71 @@ not have the same size')
         self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
 
-        if len(delta_tube_indices)>0:
-            tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])+
-                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
+        print [sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
+                    for i in range(num_patterns)])+
+                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
+                    for t in range(len(unlabeled_sample))])
                 +self.threshold
-                for s in delta_tube_indices])
-        else: tube_radius_p=0
+                    for s in delta_tube_indices]
+
+
+        #print sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[ind])
+        #             for i in range(num_patterns)])
+        #print sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[ind])
+        #            for t in range(len(unlabeled_sample))])
+        #print self.threshold
+
+        #print all_signed_alpha[0]*self.kernel.compute(sample[0].pattern,unlabeled_sample[ind])- all_gamma_delta[0]*self.kernel.compute(unlabeled_sample[0],unlabeled_sample[0])
+        #+ self.threshold
+
+
+        if len(delta_tube_indices)>0:
+            tube_radius_n=-mean(([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
+                    for i in range(num_patterns)])+
+                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
+                    for t in range(len(unlabeled_sample))])
+                +self.threshold
+                    for s in delta_tube_indices]))
+
+
+        else: tube_radius_n=0
 
         if len(gamma_tube_indices)>0:
-            tube_radius_n=-(mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s]) for i in range(num_patterns)])-
-                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s]) for t in range(len(unlabeled_sample))])
+            tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
+                            for i in range(num_patterns)])+
+                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
+                            for t in range(len(unlabeled_sample))])
                 +self.threshold
-                for s in gamma_tube_indices]))
-        else: tube_radius_n=0
-        #print tube_radius_n,tube_radius_p
-        self.tube_radius=(tube_radius_n+tube_radius_p)/2
-        #print self.tube_radius
-        self.in_tube_unlabeled_indicess=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
+                            for s in gamma_tube_indices])
+        else: tube_radius_p=0
 
+
+        print tube_radius_n,tube_radius_p
+        self.tube_radius=(math.fabs(tube_radius_n)+math.fabs(tube_radius_p))/2
+        print self.tube_radius
+        self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
         #regression
+        """
         clf = linear_model.LinearRegression()
         fitting_sample=[[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
         clf.fit (*fitting_sample)
 
         norm_r=math.sqrt(sum(clf.coef_[0]))
-        print norm_r
+        #print norm_r
         norm_svm=sum(alpha[i]*alpha[j]*sample[i].label*sample[j].label*
                      kernel.compute(sample[i].pattern,sample[j].pattern)
                      for i in range(num_patterns) for j in range(num_patterns) )  +sum(
                         (gamma[s]-delta[s])*(gamma[t]-delta[t])*
                         kernel.compute(unlabeled_sample[s],unlabeled_sample[t])
                         for s in range(num_unlabeled_patterns) for t in range(num_unlabeled_patterns))
-        print norm_svm,norm_r
+        #print norm_svm,norm_r
+
         svmtr=self.decision_function([0]+list(clf.coef_))
-        print svmtr
+
+        #print svmtr
         self.angle=math.degrees(math.acos(svmtr/(norm_r*norm_svm)))
-
-
+        #print self.angle
+    """
     def decision_function(self, pattern):
 
         if len(pattern) != self.dim:

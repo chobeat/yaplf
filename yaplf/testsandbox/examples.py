@@ -56,12 +56,12 @@ for i in to_print:
     print i
 """
 """random.shuffle(unlabeled_dataset)"""
-unlabeled_dataset=unlabeled_dataset[0:110]
+unlabeled_dataset=unlabeled_dataset[70:100]
 training_set=training_set[:20]
-alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=10)
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=30)
 alg.run()
+alg.model.gamma_delta
 #print alg.model.intube(unlabeled_dataset[0])
-print len(alg.model.in_tube_unlabeled_indicess)
 """
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
 print float(sum(res))/(len(test_set))

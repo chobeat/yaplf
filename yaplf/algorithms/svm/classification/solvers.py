@@ -1123,6 +1123,8 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
 
         for u in range(n):
             model.addVar(name='gamma_%d' % u, lb=0, ub=d,vtype=GRB.CONTINUOUS)
+
+        for u in range(n):
             model.addVar(name='delta_%d' % u, lb=0, ub=d,vtype=GRB.CONTINUOUS)
 
         model.update()
@@ -1143,6 +1145,7 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
             for v in range(n):
                 obj.add((gammas[u] - deltas[u]) * (gammas[v] - deltas[v]) * k( unlabeled_sample[u], unlabeled_sample[v]), -0.5)
 
+
         model.setObjective(obj, GRB.MAXIMIZE)
 
         constEqual = gurobipy.LinExpr()
@@ -1150,7 +1153,7 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
             constEqual.add(alphas[i] *labels[i], 1.0)
 
         for u in range(n):
-            constEqual.add(gammas[u] - deltas[u], 1.0)
+            constEqual.add((gammas[u] - deltas[u]), -1.0)
 
         model.addConstr(constEqual, GRB.EQUAL, 0)
 

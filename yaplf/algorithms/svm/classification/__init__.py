@@ -295,4 +295,5 @@ class S3VMClassificationAlgorithm(LearningAlgorithm):
     def run(self):
         solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
                                                   self.kernel)
-        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.kernel)
+
+        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.kernel)

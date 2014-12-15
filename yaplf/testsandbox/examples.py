@@ -21,8 +21,8 @@ def read_webspam():
     unlabeled_dataset=[j for i,j in feat_dict.iteritems() if not labels_dict.__contains__(i)]
 
 
-    test_set=labeled_dataset[:250]
-    training_set=labeled_dataset[251:600]
+    test_set=labeled_dataset[:150]
+    training_set=labeled_dataset[151:400]
     unlabeled_dataset=unlabeled_dataset[:150]
     return training_set,unlabeled_dataset,test_set
 
@@ -36,11 +36,14 @@ def read_dataset_temp():
     file=open("temp.txt","r")
     r=pickle.load(file)
     file.close()
+
     return r
 
-#ds=read_webspam()
+ds=read_webspam()
 #write_dataset_temp(ds)
-training_set,unlabeled_dataset,test_set=read_dataset_temp()
+training_set,unlabeled_dataset,test_set=ds #read_dataset_temp()
+print(len(training_set))
+
 """
 to_print=[]
 for c_i in [1]:
@@ -56,9 +59,9 @@ for i in to_print:
     print i
 """
 """random.shuffle(unlabeled_dataset)"""
-unlabeled_dataset=unlabeled_dataset[70:100]
-training_set=training_set[:20]
-alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=30)
+unlabeled_dataset=unlabeled_dataset[70:90]
+training_set=training_set[:40]
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=20)
 alg.run()
 alg.model.gamma_delta
 #print alg.model.intube(unlabeled_dataset[0])

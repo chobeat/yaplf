@@ -464,9 +464,14 @@ class S3VMClassifier(Classifier):
         """
         self.solution=solution
         alpha,gamma,delta=solution
+        print alpha
+        print len(alpha)
+        print gamma
+        print delta
         Classifier.__init__(self)
         self.kernel=kernel
         self.c=c
+        self.d=d
         num_patterns = len(sample)
         num_unlabeled_patterns=len(unlabeled_sample)
         check_svm_classification_sample(sample)
@@ -489,27 +494,19 @@ not have the same size')
                 sample[i].pattern) for j in range(num_patterns)])
                 for i in range(num_patterns)
                 if alpha[i] > 0 and self.overHardMargin(alpha[i])]
-
-        if len(threshold_l_t)>0:
-            threshold_l=mean(threshold_l_t)
-        else:
-            threshold_l=0
-
         #right part of threshold b
         threshold_r_t=[sum([all_gamma_delta[s] *
                 self.kernel.compute(unlabeled_sample[s],
                 sample[i].pattern) for s in range(num_unlabeled_patterns)]) for i in range(num_patterns)
                 if alpha[i] > 0 and self.overHardMargin(alpha[i])]
 
-        if len(threshold_r_t)>0:
-            threshold_r=mean(threshold_r_t)
-        else:
-            threshold_r=0
+        threshold_list=[threshold_l_t[i]-threshold_r_t[i] for i in range(len(threshold_l_t))]
 
+        self.threshold =mean(threshold_list)
 
-        self.threshold =threshold_l-threshold_r
 
         #indices of tube's support vectors
+
         gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0 and gamma[s]<d]
         delta_tube_indices=[s for s in range(len(unlabeled_sample))if delta[s]>0 and delta[s]<d]
 
@@ -525,13 +522,14 @@ not have the same size')
         self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
 
 
+        """
         print [sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
                     for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
                     for t in range(len(unlabeled_sample))])
                 +self.threshold
                     for s in delta_tube_indices]
-
+        """
 
         #print sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[ind])
         #             for i in range(num_patterns)])
@@ -544,30 +542,31 @@ not have the same size')
 
 
         if len(delta_tube_indices)>0:
-            tube_radius_n=-mean(([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
+            tube_radius_n=[sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
                     for i in range(num_patterns)])+
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
                     for t in range(len(unlabeled_sample))])
                 +self.threshold
-                    for s in delta_tube_indices]))
+                    for s in delta_tube_indices]
 
 
-        else: tube_radius_n=0
+        else: tube_radius_n=[]
 
         if len(gamma_tube_indices)>0:
-            tube_radius_p=mean([sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
-                            for i in range(num_patterns)])+
+            tube_radius_p=[-sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
+                            for i in range(num_patterns)])-
                 sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
                             for t in range(len(unlabeled_sample))])
-                +self.threshold
-                            for s in gamma_tube_indices])
-        else: tube_radius_p=0
-
-
+                -self.threshold
+                            for s in gamma_tube_indices]
+        else: tube_radius_p=[]
+        print "indices",gamma_tube_indices,delta_tube_indices
         print tube_radius_n,tube_radius_p
-        self.tube_radius=(math.fabs(tube_radius_n)+math.fabs(tube_radius_p))/2
+        self.tube_radius=mean(tube_radius_n+tube_radius_p)
         print self.tube_radius
+        print "gamma", gamma
         self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
+
         #regression
         """
         clf = linear_model.LinearRegression()

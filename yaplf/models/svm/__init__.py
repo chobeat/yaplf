@@ -457,19 +457,18 @@ class S3VMClassifier(Classifier):
     def overHardMargin(self,x):
            return (not self.c) or x<self.c
 
-    def __init__(self, solution, sample, unlabeled_sample,c,d, kernel=LinearKernel(), **kwargs):
+    def __init__(self, solution, sample, unlabeled_sample,c,d, tolerance, kernel=LinearKernel(), **kwargs):
 
         r"""See ``S3VMClassifier`` for full documentation.
 
         """
         self.solution=solution
         alpha,gamma,delta=solution
-        print alpha
-        print len(alpha)
-        print gamma
-        print delta
+        #tolerance on the variance in the list of estimations of threshold and tube radius.
+        estimation_tolerance=0.01
         Classifier.__init__(self)
         self.kernel=kernel
+        self.tolerance=tolerance
         self.c=c
         self.d=d
         num_patterns = len(sample)
@@ -502,8 +501,14 @@ not have the same size')
 
         threshold_list=[threshold_l_t[i]-threshold_r_t[i] for i in range(len(threshold_l_t))]
 
-        self.threshold =mean(threshold_list)
+        if len(threshold_list)>0:
+            if math.fabs(max(threshold_list)-min(threshold_list))>estimation_tolerance*math.fabs(mean(threshold_list)):
+                raise Exception("Variance on the estimation of the threshold is too high\n"
+                            "Try using different parameters and a different kernel")
 
+            self.threshold =mean(threshold_list)
+        else:
+            self.threshold=0
 
         #indices of tube's support vectors
 
@@ -560,11 +565,22 @@ not have the same size')
                 -self.threshold
                             for s in gamma_tube_indices]
         else: tube_radius_p=[]
-        print "indices",gamma_tube_indices,delta_tube_indices
-        print tube_radius_n,tube_radius_p
-        self.tube_radius=mean(tube_radius_n+tube_radius_p)
-        print self.tube_radius
-        print "gamma", gamma
+        tube_list=tube_radius_n+tube_radius_p
+
+
+        if len(tube_list)>0:
+
+            if math.fabs(max(tube_list)-min(tube_list))>math.fabs(estimation_tolerance*mean(tube_list)):
+                raise Exception("Variance on the estimation of the tube radius is too high\n"
+                                "Try using different parameters and a different kernel")
+            self.tube_radius=mean(tube_list)
+        else:
+            self.tube_radius=0
+
+
+        self.tube_radius
+
+
         self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
 
         #regression
@@ -614,8 +630,9 @@ SVM dimension')
 
         """
         distance=self.decision_function(pattern)
-        #print math.fabs(distance),self.tube_radius
-        return math.fabs(distance)<self.tube_radius
+
+        print math.fabs(distance),self.tube_radius
+        return math.fabs(distance)<self.tube_radius or math.fabs(math.fabs(distance)-self.tube_radius)<self.tolerance
 
 
     def compute(self, pattern):

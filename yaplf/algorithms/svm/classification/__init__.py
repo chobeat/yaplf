@@ -275,13 +275,13 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
 class S3VMClassificationAlgorithm(LearningAlgorithm):
     def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, solver=GurobiS3VMClassificationSolver(),
-                 kernel=LinearKernel(), **kwargs):
+                 kernel=LinearKernel(),tolerance=1e-6, **kwargs):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
         #        check_svm_classification_unlabeled_sample(unlabeled_sample)
         self.sample = sample
         self.unlabeled_sample = unlabeled_sample
-
+        self.tolerance=tolerance
         self.solver = solver
         self.c = c
         self.d = d
@@ -294,6 +294,6 @@ class S3VMClassificationAlgorithm(LearningAlgorithm):
 
     def run(self):
         solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
-                                                  self.kernel)
+                                                  self.kernel,tolerance=self.tolerance)
 
-        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.kernel)
+        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance, self.kernel)

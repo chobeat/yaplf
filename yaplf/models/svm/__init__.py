@@ -464,6 +464,8 @@ class S3VMClassifier(Classifier):
         """
         self.solution=solution
         alpha,gamma,delta=solution
+        print "gamma",gamma
+        print "delta", delta
         #tolerance on the variance in the list of estimations of threshold and tube radius.
         estimation_tolerance=0.01
         Classifier.__init__(self)
@@ -502,14 +504,13 @@ not have the same size')
         threshold_list=[threshold_l_t[i]-threshold_r_t[i] for i in range(len(threshold_l_t))]
 
         if len(threshold_list)>0:
-            if math.fabs(max(threshold_list)-min(threshold_list))>estimation_tolerance*math.fabs(mean(threshold_list)):
+            if max(threshold_list)-min(threshold_list)>math.fabs(estimation_tolerance*mean(threshold_list)):
                 raise Exception("Variance on the estimation of the threshold is too high\n"
                             "Try using different parameters and a different kernel")
 
             self.threshold =mean(threshold_list)
         else:
-            self.threshold=0
-
+            raise Exception("Threshold error")
         #indices of tube's support vectors
 
         gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0 and gamma[s]<d]
@@ -570,19 +571,20 @@ not have the same size')
 
         if len(tube_list)>0:
 
-            if math.fabs(max(tube_list)-min(tube_list))>math.fabs(estimation_tolerance*mean(tube_list)):
+            if max(tube_list)-min(tube_list)>estimation_tolerance*math.fabs(mean(tube_list)):
                 raise Exception("Variance on the estimation of the tube radius is too high\n"
                                 "Try using different parameters and a different kernel")
             self.tube_radius=mean(tube_list)
         else:
-            self.tube_radius=0
+            raise Exception("Epsilon error")
 
 
         self.tube_radius
 
-
-        self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
-
+        if self.tube_radius>0:
+            self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
+        else:
+            self.in_tube_unlabeled_indices=[]
         #regression
         """
         clf = linear_model.LinearRegression()

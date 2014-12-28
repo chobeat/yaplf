@@ -464,8 +464,6 @@ class S3VMClassifier(Classifier):
         """
         self.solution=solution
         alpha,gamma,delta=solution
-        print "gamma",gamma
-        print "delta", delta
         #tolerance on the variance in the list of estimations of threshold and tube radius.
         estimation_tolerance=0.01
         Classifier.__init__(self)
@@ -510,7 +508,7 @@ not have the same size')
 
             self.threshold =mean(threshold_list)
         else:
-            raise Exception("Threshold error")
+            raise Exception("No valid samples to estimate the threshold")
         #indices of tube's support vectors
 
         gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0 and gamma[s]<d]
@@ -576,7 +574,7 @@ not have the same size')
                                 "Try using different parameters and a different kernel")
             self.tube_radius=mean(tube_list)
         else:
-            raise Exception("Epsilon error")
+            raise Exception("No valid samples to estimate the tube radius")
 
 
         self.tube_radius
@@ -633,7 +631,6 @@ SVM dimension')
         """
         distance=self.decision_function(pattern)
 
-        print math.fabs(distance),self.tube_radius
         return math.fabs(distance)<self.tube_radius or math.fabs(math.fabs(distance)-self.tube_radius)<self.tolerance
 
 

@@ -1110,8 +1110,7 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
 
     def solve(self, sample, unlabeled_sample=[], c=float('inf'),d=1,e=1, kernel=LinearKernel(),
               tolerance=1e-6):
-        print c,d,e
-        print sample[0]
+
         m = len(sample)
         n = len(unlabeled_sample)
         patterns = [a.pattern for a in sample]
@@ -1119,6 +1118,7 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
 
         GRB=gurobipy.GRB
         model = gurobipy.Model('classify')
+        model.setParam(GRB.param.OutputFlag,0)
         for i in range(m):
             model.addVar(name='alpha_%d' % i, lb=0, ub=c, vtype=GRB.CONTINUOUS)
 
@@ -1129,7 +1129,6 @@ class GurobiS3VMClassificationSolver(SVMClassificationSolver):
             model.addVar(name='delta_%d' % u, lb=0, ub=d,vtype=GRB.CONTINUOUS)
 
         model.update()
-        print m
         allVars = model.getVars()
         alphas = allVars[:m]
         gammas = allVars[m:m+n]

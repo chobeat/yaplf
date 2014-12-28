@@ -2,13 +2,18 @@ from yaplf.data import LabeledExample
 import unittest
 from yaplf.algorithms.svm.classification import *
 import random
-from numpy import arange
+from numpy import arange,linspace
 import warnings
 from yaplf.graph import classification_data_plot,MatplotlibPlotter
 import yaplf.models.kernel
 from yaplf.data import LabeledExample
 import matplotlib.pyplot as plt
+import pickle
+from os.path import expanduser
+import datetime
 warnings.simplefilter("error")
+
+home = expanduser("~")
 
 def randrange_float(start, stop, step):
     return random.randint(0, int((stop - start) / step)) * step + start
@@ -33,11 +38,13 @@ class Test(unittest.TestCase):
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([0,0],50,0.2,-1)+self.generate_from_point([2,2],50,0.2,-1)
-        pos=self.generate_from_point([1,1],50,0.2,1)
+        neg=self.generate_from_point([0,0],20,2,-1)
+        pos=self.generate_from_point([1,1],20,2,1)
         labeled=pos+neg
         #labeled=[LabeledExample([-0.9,-0.9],-1),LabeledExample([0.9,-0.9],1),LabeledExample([-0.9,0.9],1),LabeledExample([0.9,0.9],1)]
-        unlabeled=self.generate_from_point([0.570710,0.570710],300,2,0)
+        #unlabeled=self.generate_from_point([0.570710,0.570710],300,2,0)
+        unlabeled=self.generate_from_function(lambda x:x**3,20,0.1,-7,7)
+
         #unlabeled=[[-0.1,-0.1],[-0.3,-0.3],[0.1,-0.3],[0.2,-0.4],[0.3,-0.366648]]
         test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
         return [labeled,unlabeled,test_set]
@@ -58,8 +65,8 @@ class Test(unittest.TestCase):
         else:
             return [[d+r(-scattering,scattering,0.01)for d in center] for i in range(size)]
 
-    def generate_from_function(self,fn,size,scattering,int_start,int_end,step,label=None):
-        interval=arange(int_start,int_end,step)
+    def generate_from_function(self,fn,size,scattering,int_start,int_end,label=None):
+        interval=linspace(int_start,int_end,size)
         p_size=size/len(interval)
         l=[self.generate_from_point([x,fn(x)],p_size,scattering,label) for x in interval]
         return [i for j in l for i in j ]
@@ -73,10 +80,10 @@ class Test(unittest.TestCase):
     def test_tube(self):
 
       labeled,unlabeled,test_set=self.generate_simple_dataset()
-      for i in range(10):
-            alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=1+4*i,kernel=yaplf.models.kernel.GaussianKernel(1),
+      for i in range(15):
+            alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=0.1+i*i, #kernel=yaplf.models.kernel.GaussianKernel(1),
                                               tolerance=0.00001)
-            path="/home/chobeat/prova"+str(i)+".jpg"
+            path=str(home)+"/grafici/prova"+str(i)+".jpg"
             import os
             try:
              os.remove(path)
@@ -84,13 +91,22 @@ class Test(unittest.TestCase):
               pass
             try:
                 alg.run() # doctest:+ELLIPSIS
-            except:
+            except Exception as e:
                 "Errore"
                 continue
             m=alg.model
             intube_post_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
             intube_model_indices=m.in_tube_unlabeled_indices
-            self.assertEqual(intube_model_indices,intube_post_indices)
+            try:
+                self.assertEqual(intube_model_indices,intube_post_indices)
+            except AssertionError as e:
+                    file=open(str(home)+"/grafici/dump_error"+str(datetime.datetime.now())+".txt","wb")
+
+                    pickle.dump([labeled,unlabeled,intube_model_indices],file)
+                    file.close()
+                    raise e
+
+            print alg.model.tube_radius
             self.tmp_plot(alg,labeled,unlabeled,path)
 
 
@@ -114,12 +130,11 @@ class Test(unittest.TestCase):
                      np.arange(-5, 5, h))
             l=[(x[0],x[1]) for x in np.c_[xx.ravel(), yy.ravel()]]
             Z=np.array([alg.model.decision_function(x) for x in l])
-            print Z
+
             Z = Z.reshape(xx.shape)
-            print Z
+
             contour_value_eps = [alg.model.tube_radius,-alg.model.tube_radius]
             contour_style = ('-',) * len(contour_value_eps)
-
             plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="r")
             plt.contour(xx, yy, Z,[0],linestyles=contour_style,colors="g")
 

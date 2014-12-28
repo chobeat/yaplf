@@ -3,8 +3,11 @@ from yaplf.algorithms.svm.classification.solvers import *
 from yaplf.algorithms.svm.classification import *
 from yaplf.models.svm.plot import *
 import warnings
-
+from yaplf.graph import *
 import random
+import matplotlib as plt
+
+import yaplf.models.kernel
 warnings.simplefilter("error")
 def read_webspam():
     with open("feat.csv","r") as f:
@@ -22,6 +25,7 @@ def read_webspam():
 
 
     test_set=labeled_dataset[:150]
+    random.shuffle(labeled_dataset)
     training_set=labeled_dataset[151:400]
     unlabeled_dataset=unlabeled_dataset[:150]
     return training_set,unlabeled_dataset,test_set
@@ -39,10 +43,10 @@ def read_dataset_temp():
 
     return r
 
+
 ds=read_webspam()
 #write_dataset_temp(ds)
 training_set,unlabeled_dataset,test_set=ds #read_dataset_temp()
-print(len(training_set))
 
 """
 to_print=[]
@@ -58,17 +62,16 @@ for c_i in [1]:
 for i in to_print:
     print i
 """
-"""random.shuffle(unlabeled_dataset)"""
+random.shuffle(unlabeled_dataset)
 unlabeled_dataset=unlabeled_dataset[70:90]
 training_set=training_set[:40]
-alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=20)
+alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=1,d=1,e=5,kernel=yaplf.models.kernel.GaussianKernel(1))
 alg.run()
-alg.model.gamma_delta
 #print alg.model.intube(unlabeled_dataset[0])
-"""
+
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
 print float(sum(res))/(len(test_set))
-
+"""
 alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=f*1.5,d=1,e=len(unlabeled_dataset))
 alg.run()
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
@@ -85,5 +88,6 @@ alg = SVMClassificationAlgorithm(training_set,c=1)
 
 alg.run() # doctest:+ELLIPSIS
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+"""
 
-print float(sum(res))/(len(test_set))"""
+

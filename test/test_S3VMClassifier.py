@@ -22,7 +22,7 @@ class Test(unittest.TestCase):
     """Unit tests for S3VMClassifier module of yaplf."""
 
     def base_classification(self,labeled,unlabeled,test_set):
-        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=1)
+        alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10)
         alg.run() # doctest:+ELLIPSIS
         correct_guess=[alg.model.compute(i.pattern)==i.label for i in test_set]
         return correct_guess
@@ -38,12 +38,12 @@ class Test(unittest.TestCase):
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([0,0],20,2,-1)
-        pos=self.generate_from_point([1,1],20,2,1)
+        neg=self.generate_from_point([2,0],20,2,-1)
+        pos=self.generate_from_point([1,3],20,2,1)
         labeled=pos+neg
         #labeled=[LabeledExample([-0.9,-0.9],-1),LabeledExample([0.9,-0.9],1),LabeledExample([-0.9,0.9],1),LabeledExample([0.9,0.9],1)]
         #unlabeled=self.generate_from_point([0.570710,0.570710],300,2,0)
-        unlabeled=self.generate_from_function(lambda x:x**3,20,0.1,-7,7)
+        unlabeled=self.generate_from_function(lambda x:2*x+2,50,0.1,-1,1)
 
         #unlabeled=[[-0.1,-0.1],[-0.3,-0.3],[0.1,-0.3],[0.2,-0.4],[0.3,-0.366648]]
         test_set=[LabeledExample([-0.1,-0.1],-1),LabeledExample([0,0],1)]
@@ -82,18 +82,14 @@ class Test(unittest.TestCase):
       labeled,unlabeled,test_set=self.generate_simple_dataset()
       for i in range(15):
             alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=0.1+i*i, #kernel=yaplf.models.kernel.GaussianKernel(1),
-                                              tolerance=0.00001)
+                                              tolerance=0.0000001)
             path=str(home)+"/grafici/prova"+str(i)+".jpg"
             import os
             try:
              os.remove(path)
             except OSError:
               pass
-            try:
-                alg.run() # doctest:+ELLIPSIS
-            except Exception as e:
-                "Errore"
-                continue
+            alg.run() # doctest:+ELLIPSIS
             m=alg.model
             intube_post_indices=[i for i in range(len(unlabeled)) if alg.model.intube(unlabeled[i])]
             intube_model_indices=m.in_tube_unlabeled_indices
@@ -102,17 +98,18 @@ class Test(unittest.TestCase):
             except AssertionError as e:
                     file=open(str(home)+"/grafici/dump_error"+str(datetime.datetime.now())+".txt","wb")
 
-                    pickle.dump([labeled,unlabeled,intube_model_indices],file)
+                    pickle.dump([labeled,unlabeled,intube_model_indices,alg.model],file)
                     file.close()
+
+                    self.tmp_plot(alg,labeled,unlabeled,str(home)+"/grafici/errore.jpg")
                     raise e
 
-            print alg.model.tube_radius
-            self.tmp_plot(alg,labeled,unlabeled,path)
+            f=lambda x:alg.model.clf.coef_[0]*x+alg.model.clf.intercept_[0]
+            self.tmp_plot(alg,labeled,unlabeled,path,f)
 
 
 
-    def tmp_plot(self,alg,labeled,unlabeled,path):
-
+    def tmp_plot(self,alg,labeled,unlabeled,path,regrFunc=None):
 
             cf_f=lambda x:("yellow" if x.label==1 else ("blue" if x.label==0 else "red"))
             ll=lambda x,y: alg.model.decision_function((x,y))
@@ -129,14 +126,22 @@ class Test(unittest.TestCase):
             xx, yy = np.meshgrid(np.arange(-5,5, h),
                      np.arange(-5, 5, h))
             l=[(x[0],x[1]) for x in np.c_[xx.ravel(), yy.ravel()]]
+
             Z=np.array([alg.model.decision_function(x) for x in l])
 
             Z = Z.reshape(xx.shape)
+
 
             contour_value_eps = [alg.model.tube_radius,-alg.model.tube_radius]
             contour_style = ('-',) * len(contour_value_eps)
             plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="r")
             plt.contour(xx, yy, Z,[0],linestyles=contour_style,colors="g")
+            if regrFunc:
+
+                rx=np.linspace(-5,5,100)
+                ry=regrFunc(rx)
+                plt.plot(rx,ry)
+
 
             fig.savefig(path)
 

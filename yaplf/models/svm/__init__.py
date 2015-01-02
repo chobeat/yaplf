@@ -1,4 +1,3 @@
-
 r"""
 Package handling support vector-based models in yaplf
 
@@ -19,7 +18,7 @@ AUTHORS:
 
 """
 
-#*****************************************************************************
+# *****************************************************************************
 #       Copyright (C) 2010 Dario Malchiodi <malchiodi@di.unimi.it>
 #
 # This file is part of yaplf.
@@ -38,14 +37,16 @@ AUTHORS:
 
 
 from yaplf.models.kernel import LinearKernel
-from numpy import sign, dot,mean
-from numpy import arange,array,ones,linalg
-from pylab import plot,show
+from numpy import sign, dot, mean
+from numpy import arange, array, ones, linalg
+from pylab import plot, show
 from sklearn import linear_model
 from yaplf.models import Classifier
 from yaplf.models.kernel import Kernel
 from yaplf.data import LabeledExample
 import math
+
+
 def check_svm_classification_sample(sample):
     r"""
     Checks whether the supplied sample is properly formatted in order to use it
@@ -127,7 +128,7 @@ def check_svm_classification_sample(sample):
         - Dario Malchiodi (2010-02-22)
 
     """
-    if len(sample)<1:
+    if len(sample) < 1:
         raise ValueError("Empty sample")
     dim = len(sample[0].pattern)
 
@@ -145,15 +146,15 @@ to -1 or to 1')
 
 
 def check_svm_classification_unlabeled_sample(unlabeled_sample):
-
-    if len(unlabeled_sample)<1:
+    if len(unlabeled_sample) < 1:
         return
 
-    dim=len(unlabeled_sample[0])
+    dim = len(unlabeled_sample[0])
     for elem in unlabeled_sample[1:]:
         if len(elem) != dim:
-             raise ValueError('SVM classification patterns should have the \
+            raise ValueError('SVM classification patterns should have the \
 same dimension')
+
 
 class SVMClassifier(Classifier):
     r"""
@@ -280,9 +281,8 @@ class SVMClassifier(Classifier):
     """
 
 
-
-    def overHardMargin(self,x):
-           return (not self.c) or x<self.c
+    def overHardMargin(self, x):
+        return (not self.c) or x < self.c
 
     def __init__(self, alpha, c, sample, kernel=LinearKernel(), **kwargs):
         r"""See ``SVMClassifier`` for full documentation.
@@ -290,7 +290,7 @@ class SVMClassifier(Classifier):
         """
 
         Classifier.__init__(self)
-        self.c=c
+        self.c = c
         num_patterns = len(sample)
         check_svm_classification_sample(sample)
         self.dim = len(sample[0].pattern)
@@ -298,21 +298,19 @@ class SVMClassifier(Classifier):
         if len(alpha) != num_patterns:
             raise ValueError('The supplied sample and multipliers vector do \
 not have the same size')
-        self.kernel=kernel
+        self.kernel = kernel
         self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
 
         self.support_vectors = [sample[i].pattern for i in self.sv_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
-            for i in self.sv_indices]
-
+                              for i in self.sv_indices]
 
         self.threshold = mean([sample[i].label -
-                sum([alpha[j] * sample[j].label *
-                self.kernel.compute(sample[j].pattern,
-                sample[i].pattern) for j in range(num_patterns)])
-                for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])])
-
+                               sum([alpha[j] * sample[j].label *
+                                    self.kernel.compute(sample[j].pattern,
+                                                        sample[i].pattern) for j in range(num_patterns)])
+                               for i in range(num_patterns)
+                               if alpha[i] > 0 and self.overHardMargin(alpha[i])])
 
 
     def __repr__(self):
@@ -400,7 +398,7 @@ not have the same size')
 SVM dimension')
 
         kernel_values = [self.kernel.compute(x, pattern)
-            for x in self.support_vectors]
+                         for x in self.support_vectors]
         # was
         # kernel_values = map(lambda x: self.kernel.compute(x, pattern),
         #     self.support_vectors)
@@ -450,29 +448,27 @@ SVM dimension')
 
         return sign(self.decision_function(pattern))
 
+
 class S3VMClassifier(Classifier):
+    def overHardMargin(self, x):
+        return (not self.c) or x < self.c
 
-
-
-    def overHardMargin(self,x):
-           return (not self.c) or x<self.c
-
-    def __init__(self, solution, sample, unlabeled_sample,c,d, tolerance, kernel=LinearKernel(), **kwargs):
+    def __init__(self, solution, sample, unlabeled_sample, c, d, tolerance, kernel=LinearKernel(), **kwargs):
 
         r"""See ``S3VMClassifier`` for full documentation.
 
         """
-        self.solution=solution
-        alpha,gamma,delta=solution
+        self.solution = solution
+        alpha, gamma, delta = solution
         #tolerance on the variance in the list of estimations of threshold and tube radius.
-        estimation_tolerance=0.01
+        estimation_tolerance = 0.01
         Classifier.__init__(self)
-        self.kernel=kernel
-        self.tolerance=tolerance
-        self.c=c
-        self.d=d
+        self.kernel = kernel
+        self.tolerance = tolerance
+        self.c = c
+        self.d = d
         num_patterns = len(sample)
-        num_unlabeled_patterns=len(unlabeled_sample)
+        num_unlabeled_patterns = len(unlabeled_sample)
         check_svm_classification_sample(sample)
         check_svm_classification_unlabeled_sample(unlabeled_sample)
         self.dim = len(sample[0].pattern)
@@ -481,50 +477,51 @@ class S3VMClassifier(Classifier):
 not have the same size')
 
         #these multiplication are used both in the computation of b and epsilon, therefore are saved as variable
-        all_signed_alpha=[alpha[i] * sample[i].label
-            for i in range(len(alpha))]
-        all_gamma_delta=[gamma[s] - delta[s] for s in range(num_unlabeled_patterns)]
+        all_signed_alpha = [alpha[i] * sample[i].label
+                            for i in range(len(alpha))]
+        all_gamma_delta = [gamma[s] - delta[s] for s in range(num_unlabeled_patterns)]
 
 
         #left part of the threshold b
-        threshold_l_t=[sample[i].label -
-                sum([all_signed_alpha[j] *
-                self.kernel.compute(sample[j].pattern,
-                sample[i].pattern) for j in range(num_patterns)])
-                for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])]
+        threshold_l_t = [sample[i].label -
+                         sum([all_signed_alpha[j] *
+                              self.kernel.compute(sample[j].pattern,
+                                                  sample[i].pattern) for j in range(num_patterns)])
+                         for i in range(num_patterns)
+                         if alpha[i] > 0 and self.overHardMargin(alpha[i])]
         #right part of threshold b
-        threshold_r_t=[sum([all_gamma_delta[s] *
-                self.kernel.compute(unlabeled_sample[s],
-                sample[i].pattern) for s in range(num_unlabeled_patterns)]) for i in range(num_patterns)
-                if alpha[i] > 0 and self.overHardMargin(alpha[i])]
+        threshold_r_t = [sum([all_gamma_delta[s] *
+                              self.kernel.compute(unlabeled_sample[s],
+                                                  sample[i].pattern) for s in range(num_unlabeled_patterns)]) for i in
+                         range(num_patterns)
+                         if alpha[i] > 0 and self.overHardMargin(alpha[i])]
 
-        threshold_list=[threshold_l_t[i]-threshold_r_t[i] for i in range(len(threshold_l_t))]
+        threshold_list = [threshold_l_t[i] - threshold_r_t[i] for i in range(len(threshold_l_t))]
 
-        if len(threshold_list)>0:
-            if max(threshold_list)-min(threshold_list)>math.fabs(estimation_tolerance*mean(threshold_list)):
+        if len(threshold_list) > 0:
+            if max(threshold_list) - min(threshold_list) > math.fabs(estimation_tolerance * mean(threshold_list)):
                 raise Exception("Variance on the estimation of the threshold is too high\n"
-                            "Try using different parameters and a different kernel")
+                                "Try using different parameters and a different kernel")
 
-            self.threshold =mean(threshold_list)
+            self.threshold = mean(threshold_list)
         else:
             raise Exception("No valid samples to estimate the threshold")
         #indices of tube's support vectors
 
-        gamma_tube_indices=[s for s in range(len(unlabeled_sample))if gamma[s]>0 and gamma[s]<d]
-        delta_tube_indices=[s for s in range(len(unlabeled_sample))if delta[s]>0 and delta[s]<d]
+        gamma_tube_indices = [s for s in range(len(unlabeled_sample)) if gamma[s] > 0 and gamma[s] < d]
+        delta_tube_indices = [s for s in range(len(unlabeled_sample)) if delta[s] > 0 and delta[s] < d]
 
-        self.unlabeled_support_vectors_indices=[s for s in range(len(unlabeled_sample)) if gamma[s]==0 or delta[s]==0]
-        self.unlabeled_support_vectors=[unlabeled_sample[s] for s in self.unlabeled_support_vectors_indices]
+        self.unlabeled_support_vectors_indices = [s for s in range(len(unlabeled_sample)) if
+                                                  gamma[s] == 0 or delta[s] == 0]
+        self.unlabeled_support_vectors = [unlabeled_sample[s] for s in self.unlabeled_support_vectors_indices]
 
         #indices of support vectors
         self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
 
         self.support_vectors = [sample[i].pattern for i in self.sv_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
-            for i in self.sv_indices]
-        self.gamma_delta=[gamma[s]-delta[s] for s in self.unlabeled_support_vectors_indices]
-
+                              for i in self.sv_indices]
+        self.gamma_delta = [gamma[s] - delta[s] for s in self.unlabeled_support_vectors_indices]
 
         """
         print [sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
@@ -545,80 +542,83 @@ not have the same size')
         #+ self.threshold
 
 
-        if len(delta_tube_indices)>0:
-            tube_radius_n=[sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
-                    for i in range(num_patterns)])+
-                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
-                    for t in range(len(unlabeled_sample))])
-                +self.threshold
-                    for s in delta_tube_indices]
+        if len(delta_tube_indices) > 0:
+            tube_radius_n = [sum([all_signed_alpha[i] * self.kernel.compute(sample[i].pattern, unlabeled_sample[s])
+                                  for i in range(num_patterns)]) +
+                             sum([all_gamma_delta[t] * self.kernel.compute(unlabeled_sample[t], unlabeled_sample[s])
+                                  for t in range(len(unlabeled_sample))])
+                             + self.threshold
+                             for s in delta_tube_indices]
 
 
-        else: tube_radius_n=[]
+        else:
+            tube_radius_n = []
 
-        if len(gamma_tube_indices)>0:
-            tube_radius_p=[-sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
-                            for i in range(num_patterns)])-
-                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
-                            for t in range(len(unlabeled_sample))])
-                -self.threshold
-                            for s in gamma_tube_indices]
-        else: tube_radius_p=[]
-        tube_list=tube_radius_n+tube_radius_p
+        if len(gamma_tube_indices) > 0:
+            tube_radius_p = [-sum([all_signed_alpha[i] * self.kernel.compute(sample[i].pattern, unlabeled_sample[s])
+                                   for i in range(num_patterns)]) -
+                             sum([all_gamma_delta[t] * self.kernel.compute(unlabeled_sample[t], unlabeled_sample[s])
+                                  for t in range(len(unlabeled_sample))])
+                             - self.threshold
+                             for s in gamma_tube_indices]
+        else:
+            tube_radius_p = []
+        tube_list = tube_radius_n + tube_radius_p
 
+        if len(tube_list) > 0:
 
-        if len(tube_list)>0:
-
-            if max(tube_list)-min(tube_list)>estimation_tolerance*math.fabs(mean(tube_list)):
+            if max(tube_list) - min(tube_list) > estimation_tolerance * math.fabs(mean(tube_list)):
                 raise Exception("Variance on the estimation of the tube radius is too high\n"
                                 "Try using different parameters and a different kernel")
-            self.tube_radius=mean(tube_list)
+            self.tube_radius = mean(tube_list)
         else:
             raise Exception("No valid samples to estimate the tube radius")
 
-
         self.tube_radius
 
-        if self.tube_radius>0:
-            self.in_tube_unlabeled_indices=[i for i in range(len(unlabeled_sample))if gamma[i]<d and delta[i]<d]
+        if self.tube_radius > 0:
+            self.in_tube_unlabeled_indices = [i for i in range(len(unlabeled_sample)) if gamma[i] < d and delta[i] < d]
         else:
-            self.in_tube_unlabeled_indices=[]
+            self.in_tube_unlabeled_indices = []
         #regression
-        """
+
         clf = linear_model.LinearRegression()
-        fitting_sample=[[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
-        clf.fit (*fitting_sample)
+        fitting_sample = [[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
+        clf.fit(*fitting_sample)
+        self.clf = clf
+        norm_r = math.sqrt(sum(clf.coef_[0]))
+        norm_svm_l = mean([sum([alpha[i] * alpha[j] * sample[i].label * sample[j].label *
+                       kernel.compute(sample[i].pattern, sample[j].pattern)
+                       for i in range(num_patterns)]) for j in range(num_patterns)
+        ])
+        norm_svm_r=mean([sum(
+               (gamma[s] - delta[s]) * (gamma[t] - delta[t]) *
+               kernel.compute(unlabeled_sample[s], unlabeled_sample[t])
+               for s in range(num_unlabeled_patterns)) for t in range(num_unlabeled_patterns)]
+        )
 
-        norm_r=math.sqrt(sum(clf.coef_[0]))
-        #print norm_r
-        norm_svm=sum(alpha[i]*alpha[j]*sample[i].label*sample[j].label*
-                     kernel.compute(sample[i].pattern,sample[j].pattern)
-                     for i in range(num_patterns) for j in range(num_patterns) )  +sum(
-                        (gamma[s]-delta[s])*(gamma[t]-delta[t])*
-                        kernel.compute(unlabeled_sample[s],unlabeled_sample[t])
-                        for s in range(num_unlabeled_patterns) for t in range(num_unlabeled_patterns))
-        #print norm_svm,norm_r
+        norm_svm=norm_svm_l+norm_svm_r
+        svmtr = self.decision_function((clf.coef_[0], clf.intercept_[0]))
 
-        svmtr=self.decision_function([0]+list(clf.coef_))
+        print svmtr / (norm_r * norm_svm)
+        self.angle = math.degrees(math.acos(svmtr / (norm_r * norm_svm)))
+        print self.angle
 
-        #print svmtr
-        self.angle=math.degrees(math.acos(svmtr/(norm_r*norm_svm)))
-        #print self.angle
-    """
+
     def decision_function(self, pattern):
-
         if len(pattern) != self.dim:
             raise ValueError('The supplied pattern is incompatible with the \
-SVM dimension')
+    SVM dimension')
 
         kernel_values = [self.kernel.compute(x, pattern)
-            for x in self.support_vectors]
+                         for x in self.support_vectors]
         kernel_unlabeled_values = [self.kernel.compute(x, pattern)
-            for x in self.unlabeled_support_vectors]
+                                   for x in self.unlabeled_support_vectors]
 
-        return dot(kernel_values,self.signed_alphas)+dot(kernel_unlabeled_values,self.gamma_delta)+self.threshold
+        return dot(kernel_values, self.signed_alphas) + dot(kernel_unlabeled_values, self.gamma_delta) + self.threshold
 
-    def intube(self,pattern):
+
+    def intube(self, pattern):
         r"""
         INPUT:
 
@@ -629,9 +629,8 @@ SVM dimension')
         OUTPUT: True if the supplied pattern is inside the epsilon-tube, False otherwise
 
         """
-        distance=self.decision_function(pattern)
-
-        return math.fabs(distance)<self.tube_radius or math.fabs(math.fabs(distance)-self.tube_radius)<self.tolerance
+        distance = self.decision_function(pattern)
+        return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tolerance
 
 
     def compute(self, pattern):

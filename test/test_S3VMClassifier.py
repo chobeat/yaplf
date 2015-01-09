@@ -81,7 +81,9 @@ class Test(unittest.TestCase):
 
       labeled,unlabeled,test_set=self.generate_simple_dataset()
       for i in range(10):
-            alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=1+i*2, kernel=yaplf.models.kernel.GaussianKernel(2),
+            alg = S3VMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10+i*2,
+                                              kernel=yaplf.models.kernel.GaussianKernel(2),
+                                              regrKernel="rbf",
                                               tolerance=0.0000001)
             path=str(home)+"/grafici/prova"+str(i)+".jpg"
 
@@ -111,8 +113,7 @@ class Test(unittest.TestCase):
 
                     self.tmp_plot(alg,labeled,unlabeled,str(home)+"/grafici/errore.jpg")
 
-
-            f=lambda x:alg.model.clf.coef_[0]*x+alg.model.clf.intercept_[0]
+            f=lambda x:-alg.model.regr.coef_[0]*x+alg.model.regr.intercept_[0]
             self.tmp_plot(alg,labeled,unlabeled,path,f)
 
 

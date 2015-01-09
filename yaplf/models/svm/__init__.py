@@ -47,7 +47,7 @@ from yaplf.data import LabeledExample
 import numpy.linalg
 from yaplf.utility.montecarlo import MonteCarloSimulator
 import math
-
+import sklearn.svm
 
 def check_svm_classification_sample(sample):
     r"""
@@ -455,7 +455,7 @@ class S3VMClassifier(Classifier):
     def overHardMargin(self, x):
         return (not self.c) or x < self.c
 
-    def __init__(self, solution, sample, unlabeled_sample, c, d, tolerance, kernel=LinearKernel(), **kwargs):
+    def __init__(self, solution, sample, unlabeled_sample, c, d, tolerance, kernel=LinearKernel(), regrKernel="linear", **kwargs):
 
         r"""See ``S3VMClassifier`` for full documentation.
 
@@ -476,7 +476,7 @@ class S3VMClassifier(Classifier):
         self.dim = len(sample[0].pattern)
         if len(alpha) != num_patterns:
             raise ValueError('The supplied sample and multipliers vector do \
-not have the same size')
+                                not have the same size')
 
         #these multiplication are used both in the computation of b and epsilon, therefore are saved as variable
         all_signed_alpha = [alpha[i] * sample[i].label
@@ -584,36 +584,37 @@ not have the same size')
             self.in_tube_unlabeled_indices = []
         #regression
 
-        def regressor_init():
-            clf = linear_model.LinearRegression()
-            fitting_sample = [[x[:-1] for x in unlabeled_sample], [x[-1:] for x in unlabeled_sample]]
-            clf.fit(*fitting_sample)
-            self.clf = clf
-        def calc_regr_diff():
-            self.regressor_init()
-            if self.kernel.__class__==LinearKernel:
-                norm_r = numpy.linalg.norm(numpy.array(sum(clf.coef_[0]+clf.intercept_[0])))
-                svm_l = sum([alpha[i] * sample[i].label *numpy.array(sample[i].pattern) for i in range(num_patterns)])
+        regr=sklearn.svm.SVR(kernel=regrKernel)
+        x,y = [[x[:-1] for x in unlabeled_sample], [x[-1:][0] for x in unlabeled_sample]]
+        x=numpy.array(x)
+        y=numpy.array(y)
 
-                svm_r=sum([(gamma[s] - delta[s])  *numpy.array(unlabeled_sample[s]) for s in range(num_unlabeled_patterns)])
-                print svm_l,svm_r
-                svm=svm_l-svm_r
+        regr.fit(x,y)
+        self.regr = regr
+        print self.regr.coef_
 
-                regr=numpy.append(clf.coef_[0],clf.intercept_[0])
+        norm_r = numpy.linalg.norm(numpy.array(sum(regr.coef_[0]+regr.intercept_[0])))
+        svm_l = sum([alpha[i] * sample[i].label *numpy.array(sample[i].pattern) for i in range(num_patterns)])
 
-                svmtr=dot(svm,regr)
-                norm_svm=numpy.linalg.norm(svm)
-                print svmtr,norm_r,norm_svm
-                print svmtr / (norm_r * norm_svm)
-                self.angle = math.degrees(math.acos(svmtr / (norm_r * norm_svm)))
-                print self.angle
-            else:
-                m=MonteCarloSimulator()
-                print x
-                fa=lambda x:clf.decision_function(x)
-                fb=lambda x:self.compute(x)
-                print m.OverlappingArea(fa,fb,-3,3)
+        svm_r=sum([(gamma[s] - delta[s])  *numpy.array(unlabeled_sample[s]) for s in range(num_unlabeled_patterns)])
+        print svm_l,svm_r
+        svm=svm_l-svm_r
 
+        regr=numpy.append(regr.coef_[0],regr.intercept_[0])
+
+        svmtr=dot(svm,regr)
+        norm_svm=numpy.linalg.norm(svm)
+        print svmtr,norm_r,norm_svm
+        print svmtr / (norm_r * norm_svm)
+        self.angle = math.degrees(math.acos(svmtr / (norm_r * norm_svm)))
+        print self.angle
+    """
+        else:
+            m=MonteCarloSimulator()
+            fa=lambda x:clf.decision_function(x)
+            fb=lambda x:self.compute(x)
+            print m.OverlappingArea(fa,fb,-3,3)
+        """
 
     def decision_function(self, pattern):
         if len(pattern) != self.dim:

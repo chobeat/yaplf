@@ -46,6 +46,7 @@ from yaplf.algorithms import LearningAlgorithm
 from yaplf.models.kernel import LinearKernel
 from yaplf.models.svm import SVMClassifier, S3VMClassifier,check_svm_classification_sample, check_svm_classification_unlabeled_sample
 from yaplf.algorithms.svm.classification.solvers import GurobiClassificationSolver, GurobiS3VMClassificationSolver
+from numpy.linalg import norm
 
 
 class SVMClassificationAlgorithm(LearningAlgorithm):

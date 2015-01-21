@@ -44,8 +44,8 @@ from numpy import mean
 
 from yaplf.algorithms import LearningAlgorithm
 from yaplf.models.kernel import LinearKernel
-from yaplf.models.svm import SVMClassifier, S3VMClassifier,check_svm_classification_sample, check_svm_classification_unlabeled_sample
-from yaplf.algorithms.svm.classification.solvers import GurobiClassificationSolver, GurobiS3VMClassificationSolver
+from yaplf.models.svm import SVMClassifier, ESVMClassifier,check_svm_classification_sample, check_svm_classification_unlabeled_sample
+from yaplf.algorithms.svm.classification.solvers import GurobiClassificationSolver, GurobiESVMClassificationSolver
 from numpy.linalg import norm
 
 
@@ -274,9 +274,9 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
                                    kernel=self.kernel)
 
 
-class S3VMClassificationAlgorithm(LearningAlgorithm):
-    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, solver=GurobiS3VMClassificationSolver(),
-                 kernel=LinearKernel(),tolerance=1e-6, **kwargs):
+class ESVMClassificationAlgorithm(LearningAlgorithm):
+    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, solver=GurobiESVMClassificationSolver(),
+                 kernel=LinearKernel(),tolerance=1e-6, debug_mode=False, **kwargs):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
         #        check_svm_classification_unlabeled_sample(unlabeled_sample)
@@ -287,6 +287,7 @@ class S3VMClassificationAlgorithm(LearningAlgorithm):
         self.c = c
         self.d = d
         self.e = e
+        self.debug_mode=debug_mode
 
         if (c and c <= 0):
             raise ValueError("Parameter C must be positive")
@@ -297,4 +298,5 @@ class S3VMClassificationAlgorithm(LearningAlgorithm):
         solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
                                                   self.kernel,tolerance=self.tolerance)
 
-        self.model=S3VMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance, self.kernel)
+        self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance, self.kernel
+                                  ,debug_mode=self.debug_mode)

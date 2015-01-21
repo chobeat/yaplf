@@ -1026,7 +1026,7 @@ class AMPLKernelFactory(object):
             raise ValueError(str(self.kernel)
                              + 'not analytically representable')
 
-class GurobiS3VMClassificationSolver(SVMClassificationSolver):
+class GurobiESVMClassificationSolver(SVMClassificationSolver):
 
     r"""
     SVM Classification solver based on gurobi. This solver is specialized in

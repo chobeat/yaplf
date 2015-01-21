@@ -451,22 +451,54 @@ SVM dimension')
         return sign(self.decision_function(pattern))
 
 
-class S3VMClassifier(Classifier):
+class ESVMClassifier(Classifier):
+
+    r"""
+
+    INPUT:
+
+    - ``solution`` -- list of iterables containing the solution of the E-SVM problem.
+
+    - ``sample`` -- iterable containing the examples `(x_i, y_i)`.
+
+    - ``unlabeled_sample`` -- iterable containing the unlabeled examples .
+
+    - ``c`` -- weighting parameter for the minimization of the misclassification on labeled data
+
+    - ``d`` -- weighting parameter for the minimization of the misclassification on unlabeled data
+
+    - ``tube_tolerance`` -- tolerance on the evalution of the distance between a point and the tube margin
+
+    - ``estimation_tolerance`` -- tolerance on the estimation of the tube radius and the threshold
+
+    - ``kernel`` -- Kernel instance (default: LinearKernel()) SVC kernel
+      function.
+
+    - ``regrKernel`` -- Kernel for the regressor (default: "linear"). It must be one of 'linear', 'poly', 'rbf',
+    'sigmoid','precomputed' or a callable. Check the scikit documentation of sklearn.svm.SVR for more details.
+      function.
+
+    OUTPUT:
+
+    Classifier -- a ESVMClassifier instance.
+    """
+
     def overHardMargin(self, x):
         return (not self.c) or x < self.c
 
-    def __init__(self, solution, sample, unlabeled_sample, c, d, tolerance, kernel=LinearKernel(), regrKernel="linear", **kwargs):
+    def __init__(self, solution, sample, unlabeled_sample, c, d, tube_tolerance,
+                 kernel=LinearKernel(),  estimation_tolerance=0.001,debug_mode=False,**kwargs):
 
-        r"""See ``S3VMClassifier`` for full documentation.
+        r"""See ``ESVMClassifier`` for full documentation.
 
         """
         self.solution = solution
         alpha, gamma, delta = solution
         #tolerance on the variance in the list of estimations of threshold and tube radius.
-        estimation_tolerance = 0.01
+
         Classifier.__init__(self)
         self.kernel = kernel
-        self.tolerance = tolerance
+        self.tube_tolerance =tube_tolerance
         self.c = c
         self.d = d
         num_patterns = len(sample)
@@ -482,7 +514,11 @@ class S3VMClassifier(Classifier):
         all_signed_alpha = [alpha[i] * sample[i].label
                             for i in range(len(alpha))]
         all_gamma_delta = [gamma[s] - delta[s] for s in range(num_unlabeled_patterns)]
+        print debug_mode
+        if(debug_mode):
+            self.unlabeled_sample=unlabeled_sample
 
+            self.labeled_sample=sample
 
         #left part of the threshold b
         threshold_l_t = [sample[i].label -
@@ -518,11 +554,11 @@ class S3VMClassifier(Classifier):
         self.unlabeled_support_vectors = [unlabeled_sample[s] for s in self.unlabeled_support_vectors_indices]
 
         #indices of support vectors
-        self.sv_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
+        self.support_vectors_indices = [i for i in range(len(alpha)) if alpha[i] != 0]
 
-        self.support_vectors = [sample[i].pattern for i in self.sv_indices]
+        self.support_vectors = [sample[i].pattern for i in self.support_vectors_indices]
         self.signed_alphas = [alpha[i] * sample[i].label
-                              for i in self.sv_indices]
+                              for i in self.support_vectors_indices]
         self.gamma_delta = [gamma[s] - delta[s] for s in self.unlabeled_support_vectors_indices]
 
         """
@@ -576,36 +612,45 @@ class S3VMClassifier(Classifier):
         else:
             raise Exception("No valid samples to estimate the tube radius")
 
-        self.tube_radius
-
         if self.tube_radius > 0:
             self.in_tube_unlabeled_indices = [i for i in range(len(unlabeled_sample)) if gamma[i] < d and delta[i] < d]
         else:
             self.in_tube_unlabeled_indices = []
         #regression
 
-        regr=sklearn.svm.SVR(kernel=regrKernel)
+        regr=sklearn.svm.SVR(kernel="precomputed")
+
+
         x,y = [[x[:-1] for x in unlabeled_sample], [x[-1:][0] for x in unlabeled_sample]]
+        gram=[[kernel.compute(i,j) for i in x] for j in x]
+        """
         x=numpy.array(x)
         y=numpy.array(y)
-
-        regr.fit(x,y)
+        """
+        regr.fit(gram,y)
         self.regr = regr
-        print self.regr.coef_
 
-        norm_r = numpy.linalg.norm(numpy.array(sum(regr.coef_[0]+regr.intercept_[0])))
-        svm_l = sum([alpha[i] * sample[i].label *numpy.array(sample[i].pattern) for i in range(num_patterns)])
+        alpha=self.signed_alphas
+        beta=list(self.regr.dual_coef_)[0]
+        x_i=self.support_vectors
+        x_s=self.unlabeled_support_vectors
+        x_j=self.regr.support_
+        k=kernel.compute
+        g_d=self.gamma_delta
 
-        svm_r=sum([(gamma[s] - delta[s])  *numpy.array(unlabeled_sample[s]) for s in range(num_unlabeled_patterns)])
-        print svm_l,svm_r
-        svm=svm_l-svm_r
+        svmtr_l=sum([alpha[i]*beta[s]*k(x_i[i], x_s[s]) for s in range(len(x_j)) for i in range(len(x_i))])
+        svmtr_r=sum([g_d[s]*beta[t]*k(x_s[t],x_s[s]) for t in range(len(x_j)) for s in range(len(x_s))])
+        svmtr=svmtr_l+svmtr_r
+        print svmtr
+        norm_svm_l=sum([alpha[i]*alpha[j]*k(x_i[i],x_i[j]) for i in range(len(x_i)) for j in range(len(x_i))])
+        norm_svm_c=sum([g_d[s]*g_d[t]*k(x_s[s],x_s[t]) for s in range(len(x_s)) for t in range(len(x_s))])
+        norm_svm_r=2*sum([alpha[i]*g_d[t]*k(x_i[i],x_s[t]) for i in range(len(x_i)) for t in range(len(x_s))])
+        norm_svm=norm_svm_l+norm_svm_c+norm_svm_r
+        print norm_svm
 
-        regr=numpy.append(regr.coef_[0],regr.intercept_[0])
 
-        svmtr=dot(svm,regr)
-        norm_svm=numpy.linalg.norm(svm)
-        print svmtr,norm_r,norm_svm
-        print svmtr / (norm_r * norm_svm)
+        norm_r=sum([beta[s]*beta[t]*k(x_s[s],x_s[t]) for s in range(len(x_j)) for t in range(len(x_j))])
+        print norm_r
         self.angle = math.degrees(math.acos(svmtr / (norm_r * norm_svm)))
         print self.angle
     """
@@ -615,6 +660,17 @@ class S3VMClassifier(Classifier):
             fb=lambda x:self.compute(x)
             print m.OverlappingArea(fa,fb,-3,3)
         """
+
+    def regrPredict(self,X):
+        if self.kernel.__class__==LinearKernel:
+            X=[[x,] for x in X]
+            print X[0]
+            print self.unlabeled_sample[0]
+            gram=[[self.kernel.compute(p[:-1],test_example) for p in self.unlabeled_sample] for test_example in X]
+
+        else:
+            gram=[[self.kernel.compute(p[:-1],test_example) for p in self.unlabeled_sample] for test_example in X]
+        return self.regr.predict(gram)
 
     def decision_function(self, pattern):
         if len(pattern) != self.dim:
@@ -641,7 +697,7 @@ class S3VMClassifier(Classifier):
 
         """
         distance = self.decision_function(pattern)
-        return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tolerance
+        return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tube_tolerance
 
 
     def compute(self, pattern):

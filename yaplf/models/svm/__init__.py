@@ -621,7 +621,10 @@ class ESVMClassifier(Classifier):
         regr=sklearn.svm.SVR(kernel="precomputed")
 
 
-        x,y = [[x[:-1] for x in unlabeled_sample], [x[-1:][0] for x in unlabeled_sample]]
+        x,y = [[x[:-1] for x in unlabeled_sample], [x[len(x)-2:][0] for x in unlabeled_sample]]
+        print "xy"
+        print x
+        print y
         gram=[[kernel.compute(i,j) for i in x] for j in x]
         """
         x=numpy.array(x)
@@ -645,13 +648,14 @@ class ESVMClassifier(Classifier):
         norm_svm_l=sum([alpha[i]*alpha[j]*k(x_i[i],x_i[j]) for i in range(len(x_i)) for j in range(len(x_i))])
         norm_svm_c=sum([g_d[s]*g_d[t]*k(x_s[s],x_s[t]) for s in range(len(x_s)) for t in range(len(x_s))])
         norm_svm_r=2*sum([alpha[i]*g_d[t]*k(x_i[i],x_s[t]) for i in range(len(x_i)) for t in range(len(x_s))])
-        norm_svm=norm_svm_l+norm_svm_c+norm_svm_r
+        norm_svm=math.sqrt(norm_svm_l+norm_svm_c+norm_svm_r)
         print norm_svm
 
 
-        norm_r=sum([beta[s]*beta[t]*k(x_s[s],x_s[t]) for s in range(len(x_j)) for t in range(len(x_j))])
+        norm_r=math.sqrt(sum([beta[s]*beta[t]*k(x_s[s],x_s[t]) for s in range(len(x_j)) for t in range(len(x_j))]))
+
         print norm_r
-        self.angle = math.degrees(math.acos(svmtr / (norm_r * norm_svm)))
+        self.angle = math.degrees(math.acos(math.fabs(svmtr) / (norm_r * norm_svm)))
         print self.angle
     """
         else:
@@ -664,12 +668,14 @@ class ESVMClassifier(Classifier):
     def regrPredict(self,X):
         if self.kernel.__class__==LinearKernel:
             X=[[x,] for x in X]
-            print X[0]
-            print self.unlabeled_sample[0]
-            gram=[[self.kernel.compute(p[:-1],test_example) for p in self.unlabeled_sample] for test_example in X]
+            gram=[[self.kernel.compute(p,test_example[0]) for p in self.unlabeled_sample] for test_example in X]
 
         else:
-            gram=[[self.kernel.compute(p[:-1],test_example) for p in self.unlabeled_sample] for test_example in X]
+
+            print self.unlabeled_sample[0]
+            print X[0]
+            gram=[[self.kernel.compute(p,test_example[0]) for p in self.unlabeled_sample] for test_example in X]
+
         return self.regr.predict(gram)
 
     def decision_function(self, pattern):

@@ -1108,7 +1108,7 @@ class GurobiESVMClassificationSolver(SVMClassificationSolver):
         SVMClassificationSolver.__init__(self)
         self.verbose = verbose
 
-    def solve(self, sample, unlabeled_sample=[], c=float('inf'),d=1,e=1, kernel=LinearKernel(),
+    def solve(self, sample, unlabeled_sample=[], c=float('inf'),d=1,e=1,l=None,r=None, kernel=LinearKernel(),
               tolerance=1e-6):
 
         m = len(sample)
@@ -1160,7 +1160,7 @@ class GurobiESVMClassificationSolver(SVMClassificationSolver):
 
         constLess = gurobipy.LinExpr()
         for u in range(n):
-            constLess.add(gammas[u] + deltas[u], 1.0)
+            constLess.add(l[u]*gammas[u] + r[u]*deltas[u], 1.0)
 
         model.addConstr(constLess, GRB.LESS_EQUAL, float(e))
 

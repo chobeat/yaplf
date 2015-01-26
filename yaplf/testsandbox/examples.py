@@ -1,4 +1,5 @@
 from yaplf.data import LabeledExample
+from os.path import expanduser
 from yaplf.algorithms.svm.classification.solvers import *
 from yaplf.algorithms.svm.classification import *
 from yaplf.models.svm.plot import *
@@ -6,8 +7,9 @@ import warnings
 from yaplf.graph import *
 import random
 import matplotlib as plt
-
 import yaplf.models.kernel
+from yaplf.utility.synthdataset import DataGenerator
+from yaplf.testsandbox.thesisdraw import tmp_plot
 warnings.simplefilter("error")
 def read_webspam():
     with open("feat.csv","r") as f:
@@ -43,12 +45,39 @@ def read_dataset_temp():
 
     return r
 
+home = expanduser("~")
 
+def main_example():
+
+      d=DataGenerator()
+      labeled,unlabeled,l,r=d.generate_weighted_dataset()
+      for i in range(10):
+            alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10+i*5,l_weight=l,r_weight=r,
+                                              #kernel=yaplf.models.kernel.PolynomialKernel(2),
+
+                                              tube_tolerance=0.0000001,debug_mode=True)
+            path=str(home)+"/grafici/prova"+str(i)+".jpg"
+
+            import os
+            try:
+             os.remove(path)
+            except OSError:
+                pass
+            try:
+                alg.run() # doctest:+ELLIPSIS
+            except Exception as e:
+                print e
+                continue
+            m=alg.model
+            tmp_plot(alg,labeled,unlabeled,path)
+
+main_example()
+
+"""
 ds=read_webspam()
 #write_dataset_temp(ds)
 training_set,unlabeled_dataset,test_set=ds #read_dataset_temp()
 
-"""
 to_print=[]
 for c_i in [1]:
     for d_i in [1]:
@@ -61,7 +90,7 @@ for c_i in [1]:
 
 for i in to_print:
     print i
-"""
+
 random.shuffle(unlabeled_dataset)
 unlabeled_dataset=unlabeled_dataset[70:90]
 training_set=training_set[:40]
@@ -71,7 +100,6 @@ alg.run()
 
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
 print float(sum(res))/(len(test_set))
-"""
 alg = S3VMClassificationAlgorithm(training_set,unlabeled_dataset,c=f*1.5,d=1,e=len(unlabeled_dataset))
 alg.run()
 res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]

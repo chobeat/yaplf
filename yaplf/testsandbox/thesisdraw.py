@@ -34,7 +34,6 @@ def plot_data(labeled,unlabeled,path):
 
 def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
 
-
             dataset=labeled+[LabeledExample(i,0) for i in unlabeled]
             fig=classification_data_plot(dataset,color_function=cf_f)
             xr=3
@@ -60,7 +59,7 @@ def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
 
             plt.contour(xx, yy, Z,[0],linewidths=[2],colors="b")
             if regrFunc:
-
+                """
                 xx, yy = np.meshgrid(np.arange(-xr,xr, h),
                      np.arange(-3, 3, h))
                 l=[[x[0],x[1]] for x in np.c_[xx.ravel(), yy.ravel()]]
@@ -72,52 +71,57 @@ def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
 
                 contour_style = ('-',) * len(contour_value_eps)
 
-                plt.contour(xx, yy, Z,[0],linestyles=contour_style,colors="blue")
+                plt.contour(xx, yy, Z,[0],linestyles=contour_style,colors="green")
+                """
 
+                xx=np.arange(-xr,xr, h)
+                yy=[regrFunc(x) for x in xx]
+                plt.plot(xx,yy,linestyle="--",linewidth=2,color="orange")
             fig.savefig(path,bbox_inches='tight')
             plt.close()
+if __name__=="__main__":
 
-#Basic dataset
+    #Basic dataset
 
-p=thesispath+"basicdatalabel.png"
-d=DataGenerator()
-neg=d.generate_from_point([-1,-1],50,1.3,-1)
-pos=d.generate_from_point([1,1],50,1.3,1)
-labeled=neg+pos
-plot_data(labeled,[],p)
+    p=thesispath+"basicdatalabel.png"
+    d=DataGenerator()
+    neg=d.generate_from_point([-1,-1],50,1.3,-1)
+    pos=d.generate_from_point([1,1],50,1.3,1)
+    labeled=neg+pos
+    plot_data(labeled,[],p)
 
 
-#Mixed dataset
+    #Mixed dataset
 
-p=thesispath+"mixeddataset.png"
-d=DataGenerator()
-neg=d.generate_from_point([-1,-1],40,1,-1)
-pos=d.generate_from_point([1,1],40,1,1)
-labeled=neg+pos
-unlabeled=d.generate_from_function(lambda x:-x,50,0.5,-0.8,0.8,0)
-plot_data(labeled,unlabeled,p)
+    p=thesispath+"mixeddataset.png"
+    d=DataGenerator()
+    neg=d.generate_from_point([-1,-1],40,1,-1)
+    pos=d.generate_from_point([1,1],40,1,1)
+    labeled=neg+pos
+    unlabeled=d.generate_from_function(lambda x:-x,50,0.5,-0.8,0.8,0)
+    plot_data(labeled,unlabeled,p)
 
-#Base SVM
+    #Base SVM
 
-p=thesispath+"basesvm.png"
-d=DataGenerator()
-neg=d.generate_from_point([-1,-1],40,1,-1)
-pos=d.generate_from_point([1,1],40,1,1)
-labeled=neg+pos
-alg=SVMClassificationAlgorithm(labeled)
-alg.run()
-tmp_plot(alg,labeled,[],p,esvm=False)
+    p=thesispath+"basesvm.png"
+    d=DataGenerator()
+    neg=d.generate_from_point([-1,-1],40,1,-1)
+    pos=d.generate_from_point([1,1],40,1,1)
+    labeled=neg+pos
+    alg=SVMClassificationAlgorithm(labeled)
+    alg.run()
+    tmp_plot(alg,labeled,[],p,esvm=False)
 
-#Base ESVM
+    #Base ESVM
 
-p=thesispath+"baseesvm.png"
-d=DataGenerator()
-neg=d.generate_from_point([-1,-1],40,1,-1)
-pos=d.generate_from_point([1,1],40,1,1)
-labeled=neg+pos
-unlabeled=d.generate_from_function(lambda x:-x,50,0.5,-0.8,0.8,0)
+    p=thesispath+"baseesvm.png"
+    d=DataGenerator()
+    neg=d.generate_from_point([-1,-1],40,1,-1)
+    pos=d.generate_from_point([1,1],40,1,1)
+    labeled=neg+pos
+    unlabeled=d.generate_from_function(lambda x:-x,50,0.5,-0.8,0.8,0)
 
-alg=ESVMClassificationAlgorithm(labeled,unlabeled,1,1,10)
-alg.run()
+    alg=ESVMClassificationAlgorithm(labeled,unlabeled,1,1,10)
+    alg.run()
 
-tmp_plot(alg,labeled,unlabeled,p,esvm=True)
+    tmp_plot(alg,labeled,unlabeled,p,esvm=True)

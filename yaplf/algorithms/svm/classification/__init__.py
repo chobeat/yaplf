@@ -275,11 +275,19 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
 
 class ESVMClassificationAlgorithm(LearningAlgorithm):
-    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, solver=GurobiESVMClassificationSolver(),
+    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, l_weight=None,r_weight=None,
+                 solver=GurobiESVMClassificationSolver(),
                  kernel=LinearKernel(),tolerance=1e-6, debug_mode=False, **kwargs):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
-        #        check_svm_classification_unlabeled_sample(unlabeled_sample)
+        check_svm_classification_unlabeled_sample(unlabeled_sample)
+
+        if not r_weight:
+            r_weight=[1]*len(unlabeled_sample)
+        if not l_weight:
+            l_weight=[1]*len(unlabeled_sample)
+        self.r=r_weight
+        self.l=l_weight
         self.sample = sample
         self.unlabeled_sample = unlabeled_sample
         self.tolerance=tolerance
@@ -296,7 +304,8 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
 
     def run(self):
         solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
-                                                  self.kernel,tolerance=self.tolerance)
+                                                  self.l,self.r,self.kernel,
+                                                  tolerance=self.tolerance)
 
-        self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance, self.kernel
-                                  ,debug_mode=self.debug_mode)
+        self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance,self.l,self.r,
+                                  self.kernel,debug_mode=self.debug_mode)

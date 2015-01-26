@@ -32,27 +32,25 @@ class DataGenerator():
 
 
     def generate_weighted_dataset(self):
-        neg=self.generate_from_function(lambda x:+1,20,0.2,-2,2,-1)
+        neg=self.generate_from_function(lambda x:+0.8,20,0.2,-1,1,-1)
 
-        pos=self.generate_from_function(lambda x:-1,20,0.2,-2,2,1)
+        pos=self.generate_from_function(lambda x:-0.8,20,0.2,-1,1,1)
 
 
         labeled=pos+neg
-        unlabeled=self.generate_from_function(lambda x:0,30,0.3,-2,2)
-        def w_l(x):
-            if x<0:
-                return 1+x
+        unlabeled=self.generate_from_function(lambda x:0,50,0.2,-1,1)
+        def w_l(y):
+            if y>0:
+                return (1-y,y)
             else:
-                return -x
-        def w_r(x):
-            if x>=0:
-                return 1-x
-            else:
-                return x
+                return (-y,1+y)
 
-        l=[w_l(s[1]) for s in unlabeled]
-        r=[w_r(s[1]) for s in unlabeled]
-        print l,r
+
+        w=[w_l(s[1]) for s in unlabeled]
+        l=[x[0] for x in w ]
+        r=[x[1] for x in w ]
+
+
         return [labeled,unlabeled,l,r]
 
 

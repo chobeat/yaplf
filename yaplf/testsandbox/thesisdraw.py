@@ -36,7 +36,7 @@ def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
 
             dataset=labeled+[LabeledExample(i,0) for i in unlabeled]
             fig=classification_data_plot(dataset,color_function=cf_f)
-            xr=3
+            xr=1
             axes = fig.add_subplot(111)
             x=range(-xr,xr)
             y=[-alg.model.decision_function((x_i,0)) for x_i in x]

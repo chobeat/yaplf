@@ -52,6 +52,8 @@ def main_example():
       d=DataGenerator()
       labeled,unlabeled,l,r=d.generate_weighted_dataset()
       for i in range(10):
+            print unlabeled
+            print l,r
             alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10+i*5,l_weight=l,r_weight=r,
                                               #kernel=yaplf.models.kernel.PolynomialKernel(2),
 

@@ -10,6 +10,8 @@ import matplotlib as plt
 import yaplf.models.kernel
 from yaplf.utility.synthdataset import DataGenerator
 from yaplf.testsandbox.thesisdraw import tmp_plot
+import os
+
 warnings.simplefilter("error")
 def read_webspam():
     with open("feat.csv","r") as f:
@@ -52,28 +54,58 @@ def main_example():
       d=DataGenerator()
       labeled,unlabeled,l,r=d.generate_weighted_dataset()
       for i in range(10):
-            print unlabeled
-            print l,r
             alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10+i*5,l_weight=l,r_weight=r,
                                               #kernel=yaplf.models.kernel.PolynomialKernel(2),
 
                                               tube_tolerance=0.0000001,debug_mode=True)
-            path=str(home)+"/grafici/prova"+str(i)+".jpg"
+            path=str(home)+"/grafici/prova"+str(i)+"w.jpg"
+            start_experiment(alg,path)
 
-            import os
-            try:
-             os.remove(path)
-            except OSError:
+def start_experiment(alg,path,labeled,unlabeled):
+    try:
+            os.remove(path)
+    except OSError:
                 pass
-            try:
-                alg.run() # doctest:+ELLIPSIS
-            except Exception as e:
-                print e
-                continue
-            m=alg.model
-            tmp_plot(alg,labeled,unlabeled,path)
+    try:
+            alg.run() # doctest:+ELLIPSIS
+    except Exception as e:
+          print e
+          return
+    m=alg.model
+    tmp_plot(alg,labeled,unlabeled,path)
 
-main_example()
+def weight_experiment():
+     d=DataGenerator()
+     pos=d.generate_from_point([0,2],1,0,1)
+     neg=d.generate_from_point([0,-1],1,0,-1)
+     labeled=pos+neg
+     unlabeled=[[0,0.5],[0,0.6],[0,0.65],[0,0.7]]
+     alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=0.3,
+                                              #kernel=yaplf.models.kernel.PolynomialKernel(2),
+
+                                              tube_tolerance=0.0000001,debug_mode=True)
+     path=str(home)+"/grafici/weight1.jpg"
+     start_experiment(alg,path,labeled,unlabeled)
+     print "secondo"
+
+     path=str(home)+"/grafici/weight2.jpg"
+     alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=10,d=1,e=0.3,l_weight=[1]*len(unlabeled),r_weight=[0.5]*len(unlabeled),
+                                              #kernel=yaplf.models.kernel.PolynomialKernel(2),
+
+                                              tube_tolerance=0.0000001,debug_mode=True)
+     start_experiment(alg,path,labeled,unlabeled)
+     print "terzo"
+
+     path=str(home)+"/grafici/weight3.jpg"
+     alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=10,d=1,e=0.3,l_weight=[1]*len(unlabeled),r_weight=[0.001]*len(unlabeled),
+                                              #kernel=yaplf.models.kernel.PolynomialKernel(2),
+
+                                              tube_tolerance=0.0000001,debug_mode=True)
+     start_experiment(alg,path,labeled,unlabeled)
+
+
+
+weight_experiment()
 
 """
 ds=read_webspam()

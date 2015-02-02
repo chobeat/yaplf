@@ -562,23 +562,6 @@ class ESVMClassifier(Classifier):
                               for i in self.support_vectors_indices]
         self.gamma_delta = [gamma[s] - delta[s] for s in self.unlabeled_support_vectors_indices]
 
-        """
-        print [sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[s])
-                    for i in range(num_patterns)])+
-                sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[s])
-                    for t in range(len(unlabeled_sample))])
-                +self.threshold
-                    for s in delta_tube_indices]
-        """
-
-        #print sum([all_signed_alpha[i]*self.kernel.compute(sample[i].pattern,unlabeled_sample[ind])
-        #             for i in range(num_patterns)])
-        #print sum([all_gamma_delta[t]*self.kernel.compute(unlabeled_sample[t],unlabeled_sample[ind])
-        #            for t in range(len(unlabeled_sample))])
-        #print self.threshold
-
-        #print all_signed_alpha[0]*self.kernel.compute(sample[0].pattern,unlabeled_sample[ind])- all_gamma_delta[0]*self.kernel.compute(unlabeled_sample[0],unlabeled_sample[0])
-        #+ self.threshold
 
 
         if len(delta_tube_indices) > 0:
@@ -603,16 +586,17 @@ class ESVMClassifier(Classifier):
         else:
             tube_radius_p = []
         tube_list = tube_radius_n + tube_radius_p
-
-        print tube_list
         if len(tube_list) > 0:
-
+            #a high variance is a hint that something is wrong with the model
             if max(tube_list) - min(tube_list) > estimation_tolerance * math.fabs(mean(tube_list)):
                 raise Exception("Variance on the estimation of the tube radius is too high\n"
                                 "Try using different parameters and a different kernel")
             self.tube_radius = mean(tube_list)
         else:
             raise Exception("No valid samples to estimate the tube radius")
+
+        #it can be proved that if the coefficients gamma and delta for a given point are both less than d,
+        # then the point is inside the epsilon-tube
 
         if self.tube_radius > 0:
             self.in_tube_unlabeled_indices = [i for i in range(len(unlabeled_sample)) if gamma[i] < d and delta[i] < d]
@@ -660,13 +644,13 @@ class ESVMClassifier(Classifier):
         fa=lambda x:clf.decision_function(x)
         fb=lambda x:self.compute(x)
         print m.OverlappingArea(fa,fb,-3,3)
-        """
 
     def regrPredict(self,X):
         if not self.debug_mode:
             raise Exception("This method is available only in debug mode")
         gram=[self.kernel.compute(p[:-1],X) for p in self.unlabeled_sample]
         return self.regr.predict(gram)
+        """
 
     def decision_function(self, pattern):
         if len(pattern) != self.dim:
@@ -687,7 +671,7 @@ class ESVMClassifier(Classifier):
 
         - ``self`` -- SVMClassifier object on which the function is invoked.
 
-        - ``pattern`` -- pattern whose corresponding class is to be computed.
+        - ``pattern`` -- pattern whose inclusion inside the epsilon-tube is to be evaluated.
 
         OUTPUT: True if the supplied pattern is inside the epsilon-tube, False otherwise
 

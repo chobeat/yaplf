@@ -295,6 +295,7 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
         self.c = c
         self.d = d
         self.e = e
+        #used to keep the dataset in the model after learning
         self.debug_mode=debug_mode
 
         if (c and c <= 0):

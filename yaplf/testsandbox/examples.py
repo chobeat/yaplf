@@ -11,28 +11,36 @@ import yaplf.models.kernel
 from yaplf.utility.synthdataset import DataGenerator
 from yaplf.testsandbox.thesisdraw import tmp_plot
 import os
-
+import collections
 warnings.simplefilter("error")
+
 def read_webspam():
+
+    keyword_map={"spam":1,"nonspam":-1,"undecided":0}
     with open("feat.csv","r") as f:
+
         feat= [i.split(",") for i in f][1:]
         feat_dict={int(i[0]):[float(j) for j in i[2:]] for i in feat}
-        keyword_map={"spam":1,"nonspam":-1,"undecided":0}
 
-    with open("labels.txt","r")as f:
+    with open("decided_labels.txt","r")as f:
         labels=[i.split(" ") for i in f]
         labels_dict={int(i[0]):keyword_map[i[1]] for i in labels}
 
-    labeled_dataset=[LabeledExample(feat_dict[i],j) for i,j in labels_dict.iteritems() if feat_dict.__contains__(i) and j!=0]
+    with open("undecided_labels.txt","r") as f:
 
-    unlabeled_dataset=[j for i,j in feat_dict.iteritems() if not labels_dict.__contains__(i)]
+        undecided_labels=[i.split(" ") for i in f]
+        def extract(x):
+            return [vote.split(":")[1] for vote in x.strip().split(",")]
+
+        undecided={int(l[0]):collections.Counter(extract(l[3]))for l in undecided_labels }
+
+    labeled_dataset=[LabeledExample(feat_dict[i],j) for i,j in labels_dict.iteritems()
+                     if i in feat_dict and j!=0]
 
 
-    test_set=labeled_dataset[:150]
-    random.shuffle(labeled_dataset)
-    training_set=labeled_dataset[151:400]
-    unlabeled_dataset=unlabeled_dataset[:150]
-    return training_set,unlabeled_dataset,test_set
+    unlabeled_dataset=[(feat_dict[int(i)],j) for i,j in undecided.iteritems() if i in feat_dict]
+
+    return labeled_dataset,unlabeled_dataset
 
 import pickle
 def write_dataset_temp(dataset):
@@ -103,10 +111,43 @@ def weight_experiment():
                                               tube_tolerance=0.0000001,debug_mode=True)
      start_experiment(alg,path,labeled,unlabeled)
 
+def webspam_experiment1():
+
+    decided,undecided=read_dataset_temp()
+    unlabeled=[i[0] for i in undecided]
+    decided=decided[:500]
+    random.shuffle(decided)
+    training_set=decided[:300]
+    random.shuffle(decided)
+    test_set=decided[:100]
 
 
-weight_experiment()
+    alg=SVMClassificationAlgorithm(training_set,kernel= yaplf.models.kernel.GaussianKernel(1) )
+    alg.run()
+    res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+    print "SVM Base:",float(sum(res))/len(test_set)
 
+    to_print=[]
+    for c_i in [1]:
+        for g_i in [1]:
+            for e_i in [5]:
+                alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=c_i,d=1,e=e_i,
+                                              kernel=yaplf.models.kernel.GaussianKernel(g_i),
+
+                                              tube_tolerance=0.0000001,debug_mode=True)
+                try:
+                    alg.run() # doctest:+ELLIPSIS
+                except Exception,err:
+                    print err
+                    print "Errore con c={0}, d={1}, e={2}".format(c_i,1,e_i)
+                    continue
+                res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
+
+                to_print.append(["c: "+str(c_i),"d: "+str(1),"e: "+str(e_i),float(sum(res))/(len(test_set))])
+                print "finito"
+    for i in to_print:
+        print i
+webspam_experiment1()
 """
 ds=read_webspam()
 #write_dataset_temp(ds)

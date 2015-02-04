@@ -111,26 +111,46 @@ def weight_experiment():
                                               tube_tolerance=0.0000001,debug_mode=True)
      start_experiment(alg,path,labeled,unlabeled)
 
+def cross_validation_split(labeled,fold):
+
+    size=len(labeled)/fold
+    return [(labeled[i*size:(i+1)*size],labeled[:i*size]+labeled[(i+1)*size:]) for i in range(fold)]
+
+def cross_validation(cls,kernel,dataset,fold,unlabeled=None,c=1,d=1,e=20):
+    grouped_dataset=cross_validation_split(dataset,fold)
+    precision_sum=0
+    for test_set,training_set in grouped_dataset:
+        if not unlabeled:
+            alg=cls(training_set,kernel)
+        else:
+            alg=cls(training_set,unlabeled,c,d,e,kernel=kernel,tube_tolerance=0.000001)
+        try:
+            alg.run()
+        except Exception,err:
+            print err
+            continue
+        curr_precision=float(sum([1 for i in test_set if alg.model.compute(i.pattern)==i.label ]))/len(test_set)
+        precision_sum=precision_sum+curr_precision
+
+    average_precision=precision_sum/fold
+    return  average_precision
+
+
 def webspam_experiment1():
 
     decided,undecided=read_dataset_temp()
     unlabeled=[i[0] for i in undecided]
     decided=decided[:500]
     random.shuffle(decided)
-    training_set=decided[:300]
-    random.shuffle(decided)
-    test_set=decided[:100]
 
+    print "SVM Base:",cross_validation(SVMClassificationAlgorithm, yaplf.models.kernel.GaussianKernel(2),decided,10)
+    print "ESVM",cross_validation(ESVMClassificationAlgorithm,yaplf.models.kernel.GaussianKernel(2),decided,10,unlabeled)
 
-    alg=SVMClassificationAlgorithm(training_set,kernel= yaplf.models.kernel.GaussianKernel(1) )
-    alg.run()
-    res=[1 for i in test_set if alg.model.compute(i.pattern)==i.label ]
-    print "SVM Base:",float(sum(res))/len(test_set)
-
-    to_print=[]
+    """   to_print=[]
     for c_i in [1]:
         for g_i in [1]:
             for e_i in [5]:
+
                 alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=c_i,d=1,e=e_i,
                                               kernel=yaplf.models.kernel.GaussianKernel(g_i),
 
@@ -147,7 +167,9 @@ def webspam_experiment1():
                 print "finito"
     for i in to_print:
         print i
+    """
 webspam_experiment1()
+
 """
 ds=read_webspam()
 #write_dataset_temp(ds)

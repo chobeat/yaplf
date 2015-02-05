@@ -82,6 +82,18 @@ def start_experiment(alg,path,labeled,unlabeled):
     m=alg.model
     tmp_plot(alg,labeled,unlabeled,path)
 
+def label_to_weight(votes_list):
+    weight_map={"S":1,"N":0,"U":0.5,"B":0.8}
+    r=[]
+    for example in votes_list:
+        x=[]
+        for label,count in example.iteritems():
+            x=x+([weight_map[label]]*count)
+        r.append(mean(x))
+
+    l=[1-w for w in r]
+    return (l,r)
+
 def weight_experiment():
      d=DataGenerator()
      pos=d.generate_from_point([0,2],1,0,1)
@@ -116,14 +128,11 @@ def cross_validation_split(labeled,fold):
     size=len(labeled)/fold
     return [(labeled[i*size:(i+1)*size],labeled[:i*size]+labeled[(i+1)*size:]) for i in range(fold)]
 
-def cross_validation(cls,kernel,dataset,fold,unlabeled=None,c=1,d=1,e=20):
+def cross_validation(cls,dataset,fold,*args,**kwargs):
     grouped_dataset=cross_validation_split(dataset,fold)
     precision_sum=0
     for test_set,training_set in grouped_dataset:
-        if not unlabeled:
-            alg=cls(training_set,kernel)
-        else:
-            alg=cls(training_set,unlabeled,c,d,e,kernel=kernel,tube_tolerance=0.000001)
+        alg=cls(training_set,*args,**kwargs)
         try:
             alg.run()
         except Exception,err:
@@ -143,7 +152,7 @@ def webspam_experiment1():
     decided=decided[:500]
     random.shuffle(decided)
 
-    print "SVM Base:",cross_validation(SVMClassificationAlgorithm, yaplf.models.kernel.GaussianKernel(2),decided,10)
+    """print "SVM Base:",cross_validation(SVMClassificationAlgorithm, yaplf.models.kernel.GaussianKernel(2),decided,10)"""
     print "ESVM",cross_validation(ESVMClassificationAlgorithm,yaplf.models.kernel.GaussianKernel(2),decided,10,unlabeled)
 
     """   to_print=[]
@@ -168,7 +177,41 @@ def webspam_experiment1():
     for i in to_print:
         print i
     """
-webspam_experiment1()
+
+
+def webspam_weight_experiment1():
+
+    decided,undecided=read_dataset_temp()
+    unlabeled=[i[0] for i in undecided]
+    l_weight,r_weight=label_to_weight([u[1] for u in undecided])
+    random.shuffle(decided)
+
+    decided=decided[:200]
+
+    print "SVM Base:",cross_validation(SVMClassificationAlgorithm, decided,10,kernel=yaplf.models.kernel.GaussianKernel(2))
+    print "ESVM",cross_validation(ESVMClassificationAlgorithm,decided,10,unlabeled,c=1,d=1,e=30,kernel=yaplf.models.kernel.GaussianKernel(2),
+                                    l_weight=l_weight,r_weight=r_weight)
+
+
+def webspam_weight_experiment2():
+
+    polarization_threshold=0.5
+    decided,undecided=read_dataset_temp()
+    unlabeled=[i[0] for i in undecided]
+
+    l_weight,r_weight=label_to_weight([u[1] for u in undecided])
+    threshold_undecided_set=[LabeledExample(u[0][0],(1 if u[1]>=polarization_threshold else -1)) for u in zip(undecided,r_weight)]
+
+    random.shuffle(decided)
+
+    decided=decided[:500]
+    for e_i in [0.05,0.1,0.2,0.3]:
+        alg=ESVMClassificationAlgorithm(decided,unlabeled,c=1,d=1,e=e_i*len(unlabeled),kernel=yaplf.models.kernel.GaussianKernel(2),
+                                        l_weight=l_weight,r_weight=r_weight)
+        alg.run()
+        print e_i,alg.model.in_tube_ratio()
+
+webspam_weight_experiment2()
 
 """
 ds=read_webspam()

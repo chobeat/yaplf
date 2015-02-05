@@ -492,7 +492,6 @@ class ESVMClassifier(Classifier):
         r"""See ``ESVMClassifier`` for full documentation.
 
         """
-        self.solution = solution
         alpha, gamma, delta = solution
         #tolerance on the variance in the list of estimations of threshold and tube radius.
 
@@ -501,6 +500,7 @@ class ESVMClassifier(Classifier):
         self.tube_tolerance =tube_tolerance
         self.c = c
         self.d = d
+        self.unlabeled_size=len(unlabeled_sample)
         self.debug_mode=debug_mode
         num_patterns = len(sample)
         num_unlabeled_patterns = len(unlabeled_sample)
@@ -651,6 +651,9 @@ class ESVMClassifier(Classifier):
         gram=[self.kernel.compute(p[:-1],X) for p in self.unlabeled_sample]
         return self.regr.predict(gram)
         """
+
+    def in_tube_ratio(self):
+        return float(len(self.in_tube_unlabeled_indices))/self.unlabeled_size
 
     def decision_function(self, pattern):
         if len(pattern) != self.dim:

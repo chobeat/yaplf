@@ -32,7 +32,7 @@ def plot_data(labeled,unlabeled,path):
 
 
 
-def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
+def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
 
             dataset=labeled+[LabeledExample(i,0) for i in unlabeled]
             fig=classification_data_plot(dataset,color_function=cf_f)
@@ -77,7 +77,10 @@ def tmp_plot(alg,labeled,unlabeled,path,esvm=True,regrFunc=None):
                 xx=np.arange(-xr,xr, h)
                 yy=[regrFunc(x) for x in xx]
                 plt.plot(xx,yy,linestyle="--",linewidth=2,color="orange")
-            fig.savefig(path,bbox_inches='tight')
+            if path:
+                fig.savefig(path,bbox_inches='tight')
+            else:
+                fig.plot()
             plt.close()
 if __name__=="__main__":
 

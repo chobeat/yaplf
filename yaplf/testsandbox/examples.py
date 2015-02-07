@@ -12,6 +12,7 @@ from yaplf.utility.synthdataset import DataGenerator
 from yaplf.testsandbox.thesisdraw import tmp_plot
 import os
 import collections
+import cProfile
 warnings.simplefilter("error")
 
 def read_webspam():
@@ -210,8 +211,71 @@ def webspam_weight_experiment2():
                                         l_weight=l_weight,r_weight=r_weight)
         alg.run()
         print e_i,alg.model.in_tube_ratio()
+    tmp_plot(alg,decided,unlabeled)
 
-webspam_weight_experiment2()
+def simple_profiling():
+    decided,undecided=read_dataset_temp()
+    unlabeled=[i[0] for i in undecided]
+    decided=decided[:500]
+    alg=ESVMClassificationAlgorithm(decided,unlabeled,c=1,d=1,e=0.2*len(unlabeled),
+                                    kernel=yaplf.models.kernel.GaussianKernel(2))
+    alg.run()
+    alg.model.in_tube_ratio()
+
+def in_tube_variance_spam_experiment():
+    import pylab as P
+    decided,undecided=read_dataset_temp()
+    unlabeled=[i[0] for i in undecided]
+    random.shuffle(decided)
+
+    decided=decided[:300]
+    res=[]
+    for e_i in [0.1,0.2,0.3,0.4,0.5,0.6]:
+        e_i=len(unlabeled)*e_i/10
+        alg=ESVMClassificationAlgorithm(decided,unlabeled,c=1,d=1,e=e_i,
+                                    kernel=yaplf.models.kernel.GaussianKernel(2))
+        try:
+            alg.run()
+            res.append((alg.model.tube_radius,e_i,alg.model.in_tube_ratio()))
+        except Exception,err:
+            print err
+    if res:
+        tube_radius,e_a,in_tube_a=zip(*res)
+        P.plot(e_a,in_tube_a)
+        P.plot(e_a,tube_radius)
+
+        P.show()
+    else:
+        print "Nessun risultato"
+
+def in_tube_variance_synthetic_experiment():
+    import pylab as P
+    d=DataGenerator()
+    decided,unlabeled=d.generate_leap_dataset()
+    res=[]
+    for e_s in [0.2,0.6,1,1.4,1.8]:
+        e_i=len(unlabeled)*e_s/10
+        alg=ESVMClassificationAlgorithm(decided,unlabeled,c=1,d=1,e=e_i,
+                                    kernel=yaplf.models.kernel.GaussianKernel(2))
+        try:
+            alg.run()
+            res.append((alg.model.tube_radius,float(e_s)/10,alg.model.in_tube_ratio()))
+            tmp_plot(alg,decided,unlabeled,"/home/chobeat/grafici/prop"+str(e_s)+".jpg")
+        except Exception,err:
+            print err
+    if res:
+        tube_radius,e_a,in_tube_a=zip(*res)
+        P.plot(e_a,in_tube_a)
+        P.plot(e_a,tube_radius)
+
+        P.show()
+    else:
+        print "Nessun risultato"
+
+
+in_tube_variance_spam_experiment()
+
+
 
 """
 ds=read_webspam()

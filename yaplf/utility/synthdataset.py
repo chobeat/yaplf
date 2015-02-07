@@ -31,13 +31,23 @@ class DataGenerator():
         return [labeled,unlabeled,test_set]
 
 
+    def generate_leap_dataset(self):
+        neg=self.generate_from_function(lambda x:+0.8,20,0.2,-1,1,-1)
+        pos=self.generate_from_function(lambda x:-0.8,20,0.2,-1,1,1)
+        labeled=pos+neg
+        central=self.generate_from_function(lambda x:0,50,0.1,-1,1)
+        upper=self.generate_from_function(lambda x:0.8,5,0.2,-1,1)
+        lower=self.generate_from_function(lambda x:-0.8,5,0.2,-1,1)
+        unlabeled=central+upper+lower
+        return labeled,unlabeled
+
+
+
     def generate_weighted_dataset(self):
         neg=self.generate_from_function(lambda x:+0.8,20,0.2,-1,1,-1)
-
         pos=self.generate_from_function(lambda x:-0.8,20,0.2,-1,1,1)
-
-
         labeled=pos+neg
+
         unlabeled=self.generate_from_function(lambda x:0,50,0.2,-1,1)
         def w_l(y):
             if y>0:

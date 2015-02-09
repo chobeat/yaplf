@@ -41,6 +41,12 @@ class DataGenerator():
         unlabeled=central+upper+lower
         return labeled,unlabeled
 
+    def generate_ensemble_dataset(self):
+        neg=self.generate_from_function(lambda x:+0.8,200,0.5,-1,1,-1)
+        pos=self.generate_from_function(lambda x:-0.8,200,0.5,-1,1,1)
+        labeled=pos+neg
+        unlabeled=self.generate_from_function(lambda x:0,250,0.3,-1,1)
+        return labeled,unlabeled
 
 
     def generate_weighted_dataset(self):

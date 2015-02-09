@@ -13,6 +13,8 @@ from yaplf.testsandbox.thesisdraw import tmp_plot
 import os
 import collections
 import cProfile
+from multiprocessing.pool import ThreadPool
+
 warnings.simplefilter("error")
 
 def read_webspam():
@@ -272,8 +274,75 @@ def in_tube_variance_synthetic_experiment():
     else:
         print "Nessun risultato"
 
+def parallel_init(ensemble):
+            labeled,unlabeled,algcls=ensemble.args
+            size=ensemble.size
+            while(True):
+                classifier=algcls(l_t,u_t,**ensemble.kwargs)
 
-in_tube_variance_spam_experiment()
+                try:
+
+                    classifier.run()
+                    return classifier
+                except Exception,err:
+                    print err
+                    ensemble.kwargs["e"]=ensemble.kwargs["e"]*0.9
+
+
+class Ensemble:
+    def __init__(self,size,labeled,unlabeled,algcls,*args,**kwargs):
+        self.classifiers=[]
+
+        for i in range(size):
+
+            while(True):
+
+                random.shuffle(labeled)
+                random.shuffle(unlabeled)
+                l_t=labeled[:len(labeled)/size]
+                u_t=unlabeled[:len(unlabeled)/size]
+                classifier=algcls(l_t,u_t,**kwargs)
+
+                try:
+
+                    classifier.run()
+                    self.classifiers.append(classifier)
+                    break
+                except Exception,err:
+                    print err
+                    kwargs["e"]=kwargs["e"]*0.9
+
+
+
+    def compute(self,pattern):
+            votes=[classifier.model.compute(pattern) for classifier in self.classifiers]
+
+            return  collections.Counter(votes).most_common(1)[0]
+
+
+def ensemble_experiment(ensemble_size,dataset,draw=False):
+    labeled,unlabeled=dataset
+
+    e=Ensemble(ensemble_size,labeled,unlabeled,ESVMClassificationAlgorithm,c=1,d=1,e=10,
+                                    kernel=yaplf.models.kernel.GaussianKernel(2))
+    random.shuffle(labeled)
+    votes= [e.compute(i) for i in unlabeled[:300]]
+    uncertain_votes=[(vote,count) for vote,count in votes if ensemble_size-count>2]
+    if draw:
+        i=0
+        for alg in e.classifiers:
+            i+=1
+            tmp_plot(alg,labeled,unlabeled,"/home/chobeat/grafici/ensemble"+str(i)+".jpg")
+    print uncertain_votes
+    print len(uncertain_votes)
+
+"""
+labeled,undecided=read_dataset_temp()
+unlabeled=[i[0] for i in undecided]
+ensemble_experiment(3,read_dataset_temp())
+"""
+d=DataGenerator()
+ensemble_experiment(9,d.generate_ensemble_dataset(),True)
 
 
 

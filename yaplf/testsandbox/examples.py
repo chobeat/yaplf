@@ -3,10 +3,13 @@ from yaplf.data import LabeledExample
 from yaplf.algorithms.svm.classification import *
 import warnings
 import yaplf.models.kernel
+import multiprocessing
 from yaplf.utility.synthdataset import DataGenerator
 from yaplf.testsandbox.thesisdraw import tmp_plot
 from ensemble import *
 from experiment_tools import *
+import functools
+
 warnings.simplefilter("error")
 
 def weight_experiment():
@@ -38,10 +41,28 @@ def weight_experiment():
                                               tube_tolerance=0.0000001,debug_mode=True)
      start_experiment(alg,path,labeled,unlabeled)
 
-def webspam_experiment1():
+
+
+def multi_exp(params):
+        training_set,unlabeled,test_set,c_i,e_i,g_i=params
+        alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=c_i,d=1,e=e_i*len(unlabeled),
+                                             kernel=yaplf.models.kernel.GaussianKernel(g_i) ,
+
+                                              tube_tolerance=0.0000001)
+        auc=start_experiment(alg,training_set,unlabeled,test_set)
+        perc=0
+        if alg.model:
+            perc=float(sum([1 for t in test_set if alg.model.compute(t.pattern)==t.label]))/len(test_set)
+
+        t=["c: "+str(c_i),"d: "+str(1),"e: "+str(e_i),"auc:"+str(auc),"perc:"+str(perc)]
+        print t
+        return t
+
+def webspam_cross_validation_experiment1():
 
     decided,undecided=read_dataset_temp()
-    decided=decided[:500]
+    random.shuffle(decided)
+    decided=decided[:1000]
     unlabeled=[i[0] for i in undecided]
 
     training_set=decided[:int(len(decided)*0.7)]
@@ -50,26 +71,21 @@ def webspam_experiment1():
     """print "ESVM",cross_validation(ESVMClassificationAlgorithm,
                                   yaplf.models.kernel.GaussianKernel(2),
                                   decided,10,unlabeled)"""
+    p=multiprocessing.Pool(3)
+    res=p.map
 
-    to_print=[]
-    experiment_id=1
-    for c_i in [1]:
-        for g_i in [18,19,20,21]:
-            for e_i in [0.2]:
 
-                alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=c_i,d=1,e=e_i*len(unlabeled),
-                                             kernel=yaplf.models.kernel.GaussianKernel(g_i),
 
-                                              tube_tolerance=0.0000001)
-                auc=start_experiment(alg,training_set,unlabeled,test_set)
-                t=["c: "+str(c_i),"d: "+str(1),"e: "+str(e_i),auc]
-                print t
-                to_print.append(t)
+    exps=[]
 
-    for i in to_print:
+    for c_i in [1,3,10]:
+        for g_i in [1,5,10,20,50]:
+            for e_i in [0.01,0.2,0.5]:
+                exps.append((training_set,unlabeled,test_set,c_i,e_i,g_i))
+    res=p.map(multi_exp,exps)
+    for i in res:
         print i
 
-webspam_experiment1()
 
 
 def webspam_weight_experiment1():
@@ -157,25 +173,46 @@ def in_tube_variance_synthetic_experiment():
     else:
         print "Nessun risultato"
 
-def ensemble_experiment(ensemble_size,dataset,draw=False):
+def ensemble_experiment(ensemble_size,dataset,kernel,draw=False,ambiguousvotelist=None):
     labeled,unlabeled=dataset
-
-    e=Ensemble(ensemble_size,labeled,unlabeled,ESVMClassificationAlgorithm,c=1,d=1,e=10,
-                                    #kernel=yaplf.models.kernel.GaussianKernel(2)
+    e=Ensemble(ensemble_size,labeled,unlabeled,ESVMClassificationAlgorithm,c=10,d=1,e=10,
+                                    kernel=kernel
                                     )
-    random.shuffle(labeled)
-    votes= [e.compute(i) for i in unlabeled[:300]]
-    uncertain_votes=[(vote,count) for vote,count in votes if ensemble_size-count>2]
     if draw:
         i=0
         for alg in e.classifiers:
             i+=1
             tmp_plot(alg,labeled,unlabeled,"/home/chobeat/grafici/ensemble"+str(i)+".jpg")
-    print uncertain_votes
-    print len(uncertain_votes)
+
+    class_votes=[e.compute(i) for i in unlabeled]
+
+    normalized_votes=[[(x+abs(x))/2 for x in sample_vote] for sample_vote in class_votes]
+    class_perc=[sum(v)/ensemble_size for v in normalized_votes]
+    votelist,is_ambiguous=ambiguousvotelist
+    diff=[abs(class_perc[i]-votelist[i])for i in range(len(class_perc)) if is_ambiguous[i]]
+
+    print diff
+
+linear_ensemble_webspam_experiment=functools.partial(ensemble_experiment,
+                                                     draw=False,
+                                                     kernel=LinearKernel())
+
+gaussian_ensemble_webspam_experiment=functools.partial(ensemble_experiment,draw=False,
+                                                       kernel=yaplf.models.kernel.GaussianKernel(1))
+d=DataGenerator()
+
+linear_ensemble_synth_experiment=functools.partial(ensemble_experiment,dataset=d.generate_ensemble_dataset(),draw=True,
+                                                   voteList=None,kernel=LinearKernel())
+
+gaussian_ensemble_synth_experiment=functools.partial(ensemble_experiment,dataset=d.generate_ensemble_dataset(),draw=True,
+                                                    voteList=None, kernel=yaplf.models.kernel.GaussianKernel(1))
 
 
+def ensemble_votes_experiment1():
 
+    labeled,unlabeled,votelist,ambiguous=read_webspam_with_votelist()
+    labeled=labeled[:2000]
+    gaussian_ensemble_webspam_experiment(5,dataset=(labeled,unlabeled),ambiguousvotelist=(votelist,ambiguous))
 
 def main_example():
 

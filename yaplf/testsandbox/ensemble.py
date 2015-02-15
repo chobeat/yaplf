@@ -28,4 +28,4 @@ class Ensemble:
     def compute(self,pattern):
             votes=[classifier.model.compute(pattern) for classifier in self.classifiers]
 
-            return  collections.Counter(votes).most_common(1)[0]
+            return  votes

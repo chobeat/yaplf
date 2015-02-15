@@ -122,3 +122,11 @@ def label_to_weight(votes_list):
     l=[1-w for w in r]
     return (l,r)
 
+
+def read_webspam_with_votelist():
+    labeled,undecided=read_webspam()
+    unlabeled=[i[0] for i in undecided]
+    voteList=label_to_weight([i[1] for i in undecided])
+    ambiguous=[collections.Counter(i[1])["U"]<float(len(i[1]))/2 for i in undecided]
+
+    return labeled,unlabeled,voteList[0],ambiguous

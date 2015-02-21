@@ -6,8 +6,9 @@ from yaplf.algorithms.svm.classification import *
 from yaplf.testsandbox.thesisdraw import tmp_plot
 import os
 from ensemble import *
-
-
+import csv
+import os
+from subprocess import call
 def cross_validation_split(labeled,fold):
 
     size=len(labeled)/fold
@@ -29,11 +30,26 @@ def cross_validation(cls,dataset,fold,*args,**kwargs):
     average_precision=precision_sum/fold
     return  average_precision
 
-def persist_result(res,name,annotation=None):
-    path="/home/chobeat/git/tesi/esperimenti"+name+".txt"
+def persist_result(res,name,dataset_type,annotation=None,overwrite=True):
+
+    path="/home/chobeat/git/tesi/esperimenti/"+name
+
+    if overwrite and os.path.isfile(path+".txt"):
+        os.remove(path)
+    elif os.path.isfile(path+".txt"):
+         i=2
+         t_path=path+"_"+str(i)
+         while(os.path.isfile(t_path+".txt")):
+             i+=1
+             t_path=path+"_"+str(i)
+         path=t_path
+    path=path+".txt"
     with open(path,"wb") as f:
-        f.write(annotation)
-        f.write(res)
+        f.write("dataset: "+dataset_type+"\n")
+        f.write(annotation+"\n")
+
+        writer=csv.writer(f,delimiter=" ")
+        writer.writerow(res)
 def read_webspam():
 
     keyword_map={"spam":1,"nonspam":-1,"undecided":0}
@@ -85,11 +101,22 @@ def evaluate_classifier(model,test_set):
     y_eval=[model.compute(x.pattern) for x in test_set]
     y_eval=format_data(y_eval)
 
-    fpr, tpr, thresholds = metrics.roc_curve(np.array(y_true), np.array(y_eval), pos_label=1)
+    diff=[(y_eval[i],y_true[i]) for i in range(len(y_eval)) if y_eval[i]!=y_true[i]]
 
-    auc=metrics.auc(fpr, tpr)
+    tmp_path="./temp.csv"
+    with open(tmp_path,"wb") as f:
+        example_writer=csv.writer(f, delimiter=' ',quotechar='|', quoting=csv.QUOTE_MINIMAL)
+        for i in range(len(y_eval)):
+            example_writer.writerow(("example_"+str(i),y_true[i],y_eval[i]))
 
-    return auc
+    res=os.popen(" cat ./temp.csv \
+  | sed 's/NONSPAM/0/g' | sed 's/SPAM/1/g' \
+  | grep -v '^#' | awk '{print $2,$3}' | ./perf -PRF -AUC -plot pr").read()
+    roc=float(res.split("\n")[-2].replace("ROC    ",""))
+
+    os.remove(tmp_path)
+
+    return roc
 
 
 def start_experiment(alg,labeled,unlabeled,test_set=None,path=None):

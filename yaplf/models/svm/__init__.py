@@ -682,6 +682,13 @@ class ESVMClassifier(Classifier):
         distance = self.decision_function(pattern)
         return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tube_tolerance
 
+    def quality_index(self,labeled,unlabeled):
+        labeled_in_tube_rate=sum([1 for x in labeled if self.intube(x.pattern) ])/float(len(labeled))
+
+        unlabeled_in_tube_rate=sum([1 for x in unlabeled if self.intube(x) ])/float(len(unlabeled))
+
+        print labeled_in_tube_rate,unlabeled_in_tube_rate
+        return (1-labeled_in_tube_rate)*unlabeled_in_tube_rate
 
     def compute(self, pattern):
         return sign(self.decision_function(pattern))

@@ -51,11 +51,11 @@ def multi_exp(params):
                                               tube_tolerance=0.0000001)
         auc=start_experiment(alg,training_set,unlabeled,test_set)
         perc=0
+        index=0
         if alg.model:
             perc=float(sum([1 for t in test_set if alg.model.compute(t.pattern)==t.label]))/len(test_set)
-
-        t=["c: "+str(c_i),"d: "+str(1),"e: "+str(e_i),"auc:"+str(auc),"perc:"+str(perc)]
-        print t
+            index=alg.model.quality_index(training_set,unlabeled)
+        t=["c: "+str(c_i),"d: "+str(1),"e: "+str(e_i),"auc: "+str(auc),"perc: "+str(perc),"index: "+str(index)]
         return t
 
 def webspam_cross_validation_experiment1():
@@ -65,8 +65,8 @@ def webspam_cross_validation_experiment1():
     decided=decided[:1000]
     unlabeled=[i[0] for i in undecided]
 
-    training_set=decided[:int(len(decided)*0.7)]
-    test_set=decided[int(len(decided)*0.7):]
+    training_set=decided[:int(len(decided)*0.6)]
+    test_set=decided[int(len(decided)*0.6):]
     """print "SVM Base:",cross_validation(SVMClassificationAlgorithm, yaplf.models.kernel.GaussianKernel(2),decided,10)"""
     """print "ESVM",cross_validation(ESVMClassificationAlgorithm,
                                   yaplf.models.kernel.GaussianKernel(2),
@@ -78,9 +78,9 @@ def webspam_cross_validation_experiment1():
 
     exps=[]
 
-    for c_i in [1,3,10]:
-        for g_i in [1,5,10,20,50]:
-            for e_i in [0.01,0.2,0.5]:
+    for c_i in [5,10,20]:
+        for g_i in [0.1,0.5]:
+            for e_i in [0.05,0.1]:
                 exps.append((training_set,unlabeled,test_set,c_i,e_i,g_i))
     res=p.map(multi_exp,exps)
     for i in res:
@@ -175,8 +175,8 @@ def in_tube_variance_synthetic_experiment():
 
 def ensemble_experiment(ensemble_size,dataset,kernel,draw=False,ambiguousvotelist=None):
     labeled,unlabeled=dataset
-    e=Ensemble(ensemble_size,labeled,unlabeled,ESVMClassificationAlgorithm,c=10,d=1,e=10,
-                                    kernel=kernel
+    e=Ensemble(ensemble_size,labeled,unlabeled,ESVMClassificationAlgorithm,c=1000,d=1,e=10,
+                                    kernel=kernel,tube_tolerance=0.00001
                                     )
     if draw:
         i=0
@@ -191,7 +191,7 @@ def ensemble_experiment(ensemble_size,dataset,kernel,draw=False,ambiguousvotelis
     votelist,is_ambiguous=ambiguousvotelist
     diff=[abs(class_perc[i]-votelist[i])for i in range(len(class_perc)) if is_ambiguous[i]]
 
-    print diff
+    return diff
 
 linear_ensemble_webspam_experiment=functools.partial(ensemble_experiment,
                                                      draw=False,
@@ -212,16 +212,25 @@ def ensemble_votes_experiment1():
 
     labeled,unlabeled,votelist,ambiguous=read_webspam_with_votelist()
     labeled=labeled[:2000]
-    gaussian_ensemble_webspam_experiment(5,dataset=(labeled,unlabeled),ambiguousvotelist=(votelist,ambiguous))
+    res=gaussian_ensemble_webspam_experiment(5,dataset=(labeled,unlabeled),ambiguousvotelist=(votelist,ambiguous))
+    persist_result(res,"ensemble_votes1", "webspam","Formato: lista di discrepanze tra la media dei voti dell'ensemble e"
+                              " l'ambiguity intrinseca nel dataset per i punti non undecided")
 
 def main_example():
 
       d=DataGenerator()
-      labeled,unlabeled,l,r=d.generate_weighted_dataset()
+      labeled,unlabeled=d.generate_simple_dataset()
+      random.shuffle(labeled)
+      print len(labeled)
+      training_set=labeled[:60]
+      test_set=labeled[60:]
+      print training_set[0]
       for i in range(10):
-            alg = ESVMClassificationAlgorithm(labeled,unlabeled,c=1,d=1,e=10+i*5,l_weight=l,r_weight=r,
-                                              kernel=yaplf.models.kernel.PolynomialKernel(2),
+            alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=1,d=1,e=float(i)/50*len(training_set),
+                                              kernel=yaplf.models.kernel.GaussianKernel(3),
 
                                               tube_tolerance=0.0000001,debug_mode=True)
             path=str(home)+"/grafici/prova"+str(i)+"w.jpg"
-            start_experiment(alg,path)
+            print start_experiment(alg,training_set,unlabeled,test_set)
+
+main_example()

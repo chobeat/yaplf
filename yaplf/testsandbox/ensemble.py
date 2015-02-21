@@ -1,7 +1,7 @@
 import random
 import collections
 class Ensemble:
-    def __init__(self,size,labeled,unlabeled,algcls,*args,**kwargs):
+    def __init__(self,size,labeled,unlabeled,algcls,decrease_step=0.9,*args,**kwargs):
         self.classifiers=[]
 
         for i in range(size):
@@ -18,10 +18,12 @@ class Ensemble:
 
                     classifier.run()
                     self.classifiers.append(classifier)
+                    print "buono"
                     break
                 except Exception,err:
                     print err
-                    kwargs["e"]=kwargs["e"]*0.9
+                    kwargs["e"]=kwargs["e"]*decrease_step
+                    print kwargs["e"]
 
 
 

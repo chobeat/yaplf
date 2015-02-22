@@ -36,7 +36,7 @@ def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
 
             dataset=labeled+[LabeledExample(i,0) for i in unlabeled]
             fig=classification_data_plot(dataset,color_function=cf_f)
-            xr=1
+            xr=5
             axes = fig.add_subplot(111)
             x=range(-xr,xr)
             y=[-alg.model.decision_function((x_i,0)) for x_i in x]
@@ -49,6 +49,8 @@ def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
             Z=np.array([alg.model.decision_function(x) for x in l])
 
             Z = Z.reshape(xx.shape)
+            w=np.array([alg.model.decision_function(p)-alg.model.threshold for p in alg.model.support_vectors])
+            margin=2 / np.sqrt((w ** 2).sum())
 
             if esvm:
                  contour_value_eps = [alg.model.tube_radius,-alg.model.tube_radius]
@@ -56,7 +58,11 @@ def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
                  contour_style = ('--',) * len(contour_value_eps)
                  plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
 
+            else:
 
+                contour_value_eps = [margin,-margin]
+                contour_style = ('-',) * len(contour_value_eps)
+                plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
             plt.contour(xx, yy, Z,[0],linewidths=[2],colors="b")
             if regrFunc:
                 """

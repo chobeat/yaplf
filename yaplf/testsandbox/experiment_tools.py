@@ -119,7 +119,7 @@ def evaluate_classifier(model,test_set):
     return roc
 
 
-def start_experiment(alg,labeled,unlabeled,test_set=None,path=None):
+def start_experiment(alg,labeled,unlabeled,test_set=None,path=None,ESVM=True):
 
     try:
             alg.run() # doctest:+ELLIPSIS
@@ -133,7 +133,7 @@ def start_experiment(alg,labeled,unlabeled,test_set=None,path=None):
          except OSError:
                 pass
 
-         tmp_plot(alg,labeled,unlabeled,path)
+         tmp_plot(alg,labeled,unlabeled,path,esvm=ESVM)
     if test_set:
         return evaluate_classifier(m,test_set)
 

@@ -275,27 +275,58 @@ class SVMClassificationAlgorithm(LearningAlgorithm):
 
 
 class ESVMClassificationAlgorithm(LearningAlgorithm):
-    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, l_weight=None,r_weight=None,
-                 solver=GurobiESVMClassificationSolver(),
-                 kernel=LinearKernel(),tolerance=1e-6, debug_mode=False, **kwargs):
+    r"""
+
+    INPUT:
+
+    -
+
+    - ``sample`` -- iterable containing the examples `(x_i, y_i)`.
+
+    - ``unlabeled_sample`` -- iterable containing the unlabeled examples .
+
+    - ``c`` -- weighting parameter for the minimization of the misclassification on labeled data
+
+    - ``d`` -- weighting parameter for the minimization of the misclassification on unlabeled data
+
+    - ``e`` -- weighting parameter for the minimization of the uncertainty area
+
+    - ``left_weight`` -- left weight vector
+
+    - ``right_weight`` -- right weight vector
+
+    - ``kernel`` -- Kernel instance (default: LinearKernel()) SVC kernel
+      function.
+
+    - ``tolerance`` -- tolerance on the estimation of the tube radius and the threshold
+
+    - ``debug_mode`` -- the whole dataset is stored in the model. Not suitable for a real scenario.
+
+
+
+    OUTPUT:
+
+    Classifier -- a ESVMAlgorithmClassifier instance.
+    """
+    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, left_weight=None,right_weight=None,
+                 kernel=LinearKernel(),tube_tolerance=1e-4, debug_mode=False):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)
         check_svm_classification_unlabeled_sample(unlabeled_sample)
 
-        if not r_weight:
-            r_weight=[1]*len(unlabeled_sample)
-        if not l_weight:
-            l_weight=[1]*len(unlabeled_sample)
-        self.r=r_weight
-        self.l=l_weight
+        if not right_weight:
+            right_weight=[1]*len(unlabeled_sample)
+        if not left_weight:
+            left_weight=[1]*len(unlabeled_sample)
+        self.r=right_weight
+        self.l=left_weight
         self.sample = sample
         self.unlabeled_sample = unlabeled_sample
-        self.tolerance=tolerance
-        self.solver = solver
+        self.tolerance=tube_tolerance
+        self.solver = GurobiESVMClassificationSolver()
         self.c = c
         self.d = d
         self.e = e
-        #used to keep the dataset in the model after learning
         self.debug_mode=debug_mode
 
         if (c and c <= 0):
@@ -308,5 +339,6 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
                                                   self.l,self.r,self.kernel,
                                                   tolerance=self.tolerance)
 
-        self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,self.tolerance,self.l,self.r,
-                                  self.kernel,debug_mode=self.debug_mode)
+        self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,
+                                  self.l, self.r,
+                                  tolerance=self.tolerance,kernel=self.kernel,debug_mode=self.debug_mode)

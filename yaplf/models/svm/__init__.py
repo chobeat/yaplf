@@ -467,16 +467,20 @@ class ESVMClassifier(Classifier):
 
     - ``d`` -- weighting parameter for the minimization of the misclassification on unlabeled data
 
+    - ``left_weight`` -- left weight vector
+
+    - ``right_weight`` -- right weight vector
+
     - ``tube_tolerance`` -- tolerance on the evalution of the distance between a point and the tube margin
 
+
     - ``estimation_tolerance`` -- tolerance on the estimation of the tube radius and the threshold
+
+    - ``debug_mode`` -- the whole dataset is stored in the model. Not suitable for a real scenario.
 
     - ``kernel`` -- Kernel instance (default: LinearKernel()) SVC kernel
       function.
 
-    - ``regrKernel`` -- Kernel for the regressor (default: "linear"). It must be one of 'linear', 'poly', 'rbf',
-    'sigmoid','precomputed' or a callable. Check the scikit documentation of sklearn.svm.SVR for more details.
-      function.
 
     OUTPUT:
 
@@ -486,8 +490,8 @@ class ESVMClassifier(Classifier):
     def overHardMargin(self, x):
         return (not self.c) or x < self.c
 
-    def __init__(self, solution, sample, unlabeled_sample, c, d, tube_tolerance,l,r,
-                 kernel=LinearKernel(),  estimation_tolerance=0.001,debug_mode=False,**kwargs):
+    def __init__(self, solution, sample, unlabeled_sample, c, d, left_weight,right_weight,tolerance,
+                 kernel=LinearKernel(),  debug_mode=False,**kwargs):
 
         r"""See ``ESVMClassifier`` for full documentation.
 
@@ -497,7 +501,7 @@ class ESVMClassifier(Classifier):
 
         Classifier.__init__(self)
         self.kernel = kernel
-        self.tube_tolerance =tube_tolerance
+        self.tolerance =tolerance
         self.c = c
         self.d = d
         self.unlabeled_size=len(unlabeled_sample)
@@ -538,7 +542,7 @@ class ESVMClassifier(Classifier):
         threshold_list = [threshold_l_t[i] - threshold_r_t[i] for i in range(len(threshold_l_t))]
 
         if len(threshold_list) > 0:
-            if max(threshold_list) - min(threshold_list) > math.fabs(estimation_tolerance * mean(threshold_list)):
+            if max(threshold_list) - min(threshold_list) > math.fabs(tolerance* mean(threshold_list)):
                 raise Exception("Variance on the estimation of the threshold is too high\n"
                                 "Try using different parameters and a different kernel")
 
@@ -569,7 +573,7 @@ class ESVMClassifier(Classifier):
                                   for i in range(num_patterns)]) +
                              sum([all_gamma_delta[t] * self.kernel.compute(unlabeled_sample[t], unlabeled_sample[s])
                                   for t in range(len(unlabeled_sample))])
-                             + self.threshold)/r[s]
+                             + self.threshold)/right_weight[s]
                              for s in delta_tube_indices]
 
 
@@ -581,14 +585,14 @@ class ESVMClassifier(Classifier):
                                    for i in range(num_patterns)])-
                              sum([all_gamma_delta[t] * self.kernel.compute(unlabeled_sample[t], unlabeled_sample[s])
                                   for t in range(len(unlabeled_sample))])
-                             - self.threshold)/l[s]
+                             - self.threshold)/left_weight[s]
                              for s in gamma_tube_indices]
         else:
             tube_radius_p = []
         tube_list = tube_radius_n + tube_radius_p
         if len(tube_list) > 0:
             #a high variance is a hint that something is wrong with the model
-            if max(tube_list) - min(tube_list) > estimation_tolerance * math.fabs(mean(tube_list)):
+            if max(tube_list) - min(tube_list) > tolerance * math.fabs(mean(tube_list)):
                 raise Exception("Variance on the estimation of the tube radius is too high\n"
                                 "Try using different parameters and a different kernel")
             self.tube_radius = mean(tube_list)
@@ -603,57 +607,21 @@ class ESVMClassifier(Classifier):
         else:
             self.in_tube_unlabeled_indices = []
 
-        """
-        #regression
 
-        regr=sklearn.svm.SVR(kernel="precomputed")
-        x,y = [[x[:-1] for x in unlabeled_sample], [x[len(x)-2:][0] for x in unlabeled_sample]]
-
-        gram=[[kernel.compute(i,j) for i in x] for j in x]
-
-        regr.fit(gram,y)
-        self.regr = regr
-
-        alpha=self.signed_alphas
-        beta=list(self.regr.dual_coef_)[0]
-        x_i=self.support_vectors
-        x_s=self.unlabeled_support_vectors
-        r_i=self.regr.support_
-        x_j=[x_s[s][:-1]+[0] for s in self.regr.support_]
-        k=kernel.compute
-        g_d=self.gamma_delta
-
-        svmtr_l=sum([alpha[i]*beta[s]*k(x_i[i], x_j[s]) for s in range(len(x_j)) for i in range(len(x_i))])
-        svmtr_r=sum([g_d[s]*beta[t]*k(x_j[t],x_s[s]) for t in range(len(r_i)) for s in range(len(x_s))])
-        svmtr=svmtr_l+svmtr_r
-        print svmtr
-        norm_svm_l=sum([alpha[i]*alpha[j]*k(x_i[i],x_i[j]) for i in range(len(x_i)) for j in range(len(x_i))])
-        norm_svm_c=sum([g_d[s]*g_d[t]*k(x_s[s],x_s[t]) for s in range(len(x_s)) for t in range(len(x_s))])
-        norm_svm_r=2*sum([alpha[i]*g_d[t]*k(x_i[i],x_s[t]) for i in range(len(x_i)) for t in range(len(x_s))])
-        norm_svm=math.sqrt(norm_svm_l+norm_svm_c+norm_svm_r)
-        print norm_svm
-
-
-        norm_r=math.sqrt(sum([beta[s]*beta[t]*k(x_j[s],x_j[t]) for s in range(len(x_j)) for t in range(len(x_j))]))
-
-        print norm_r
-        self.angle = math.degrees(math.acos(math.fabs(svmtr) / (norm_r * norm_svm)))
-        print "angolo",self.angle
-
-        m=MonteCarloSimulator()
-        fa=lambda x:clf.decision_function(x)
-        fb=lambda x:self.compute(x)
-        print m.OverlappingArea(fa,fb,-3,3)
-
-    def regrPredict(self,X):
-        if not self.debug_mode:
-            raise Exception("This method is available only in debug mode")
-        gram=[self.kernel.compute(p[:-1],X) for p in self.unlabeled_sample]
-        return self.regr.predict(gram)
-        """
 
     def in_tube_ratio(self):
+
+        r"""
+        INPUT:
+
+        - ``self`` -- SVMClassifier object on which the function is invoked.
+
+        OUTPUT: The fraction of unlabeled points inside the tube
+
+        """
+
         return float(len(self.in_tube_unlabeled_indices))/self.unlabeled_size
+
 
     def decision_function(self, pattern):
         if len(pattern) != self.dim:
@@ -683,6 +651,21 @@ class ESVMClassifier(Classifier):
         return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tube_tolerance
 
     def quality_index(self,labeled,unlabeled):
+        r"""
+        INPUT:
+
+        - ``self`` -- SVMClassifier object on which the function is invoked.
+
+        - ``labeled`` -- list of LabeledExample
+
+        - ``unlabeled`` -- list of patterns
+
+
+        OUTPUT: The quality index of the  classifier in respect to the supplied dataset. A value between 0 and 1
+        used to estimate the ability of the classifier to describe the spatial division between labeled examples and
+        unlabeled examples.
+
+        """
         labeled_in_tube_rate=sum([1 for x in labeled if self.intube(x.pattern) ])/float(len(labeled))
 
         unlabeled_in_tube_rate=sum([1 for x in unlabeled if self.intube(x) ])/float(len(unlabeled))

@@ -219,18 +219,18 @@ def ensemble_votes_experiment1():
 def main_example():
 
       d=DataGenerator()
-      labeled,unlabeled=d.generate_simple_dataset()
+      labeled,unlabeled=d.generate_normal_dataset(2)
       random.shuffle(labeled)
-      print len(labeled)
+
       training_set=labeled[:60]
       test_set=labeled[60:]
-      print training_set[0]
       for i in range(10):
-            alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=1,d=1,e=float(i)/50*len(training_set),
+            alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=1,d=1,e=float(i)/70*len(training_set),
                                               kernel=yaplf.models.kernel.GaussianKernel(3),
 
-                                              tube_tolerance=0.0000001,debug_mode=True)
+                                              tube_tolerance=0.0001,debug_mode=True)
             path=str(home)+"/grafici/prova"+str(i)+"w.jpg"
-            print start_experiment(alg,training_set,unlabeled,test_set)
+
+            print start_experiment(alg,training_set,unlabeled,test_set,path,False)
 
 main_example()

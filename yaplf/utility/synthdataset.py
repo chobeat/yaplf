@@ -4,18 +4,30 @@ from yaplf.data import LabeledExample
 from numpy import arange,linspace
 from yaplf.data import LabeledExample
 import random
+import numpy as np
 def randrange_float(start, stop, step):
    return random.randint(0, int((stop - start) / step)) * step + start
 r=randrange_float
 class DataGenerator():
 
 
-    def generate_simple_dataset(self):
+    def generate_normal_dataset(self,d=20):
+        neg_center= np.random.normal(-1, 0.8, d)
+        pos_center=np.random.normal(1, 0.8, d)
+
+        neg=self.generate_from_point(neg_center,50,1,-1)
+        pos=self.generate_from_point(pos_center,50,1,1)
+        labeled=pos+neg
+
+        unlabeled_center=np.random.normal(0, 0.5, d)
+        unlabeled=self.generate_from_point(unlabeled_center,20,0.2,0)
+        return [labeled,unlabeled]
+
+    def generate_simple_dataset(self,d=2):
         """
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        d=40
         neg=self.generate_from_point([1,2,3]+[1]*d,50,2,-1)
         pos=self.generate_from_point([1,4,4]+[1]*d,50,2,1)
         #neg=self.generate_from_function(lambda x:x+1,20,0.5,-2,2,-1)

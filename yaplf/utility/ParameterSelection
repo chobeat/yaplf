@@ -1,0 +1,48 @@
+import sklearn.grid_search
+from yaplf.data import LabeledExample
+import random
+import yaplf.models.kernel
+from yaplf.utility.synthdataset import DataGenerator
+from yaplf.algorithms.svm.classification import *
+from yaplf.testsandbox.experiment_tools import *
+class ClassifierBridge():
+
+    def __init__(self,cls,get_param_list,args,kwargs):
+        print args
+        print kwargs
+        self.cls=cls
+        self.get_param_list=get_param_list
+        self.alg=self.cls(*args,**kwargs)
+
+    def fit(self,x,y,unlabeled):
+
+        labeled=[LabeledExample(x[i],y[i]) for i in range(len(x)) ]
+        self.alg.sample=labeled
+        self.alg.run()
+    def predict(self,x):
+        return self.alg.model.compute(x)
+    def score(self,x,y):
+        test=[LabeledExample(x[i],y[i]) for i in range(len(x)) ]
+        return evaluate_classifier(self.alg.model,test)
+
+    def get_params(self,deep):
+       return [self.alg[param] for param in self.get_param_list]
+
+
+
+def param_search(cls,labeled,params_list,c_args,c_kwargs):
+    estimator=ClassifierBridge(cls,params_list,c_args,c_kwargs)
+    fit_params={"unlabeled":unlabeled}
+    gs=sklearn.grid_search.GridSearchCV(estimator,params_list,fit_params=fit_params)
+    X=[x.pattern for x in labeled]
+    Y=[x.label for x in labeled]
+
+    gs.fit(X,Y)
+    print gs.grid_scores_
+
+d=DataGenerator()
+labeled,unlabeled=d.generate_normal_dataset(2)
+random.shuffle(labeled)
+
+kwargs= {"kernel":yaplf.models.kernel.GaussianKernel(3),"tube_tolerance":0.0001,"debug_mode":False}
+param_search(ESVMClassifier,labeled,{"C":[1,2,3],"E":[1,2,5],"D":[1]},c_args=[unlabeled],c_kwargs=kwargs)

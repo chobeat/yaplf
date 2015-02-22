@@ -228,7 +228,7 @@ def main_example():
             alg = ESVMClassificationAlgorithm(training_set,unlabeled,c=1,d=1,e=float(i)/70*len(training_set),
                                               kernel=yaplf.models.kernel.GaussianKernel(3),
 
-                                              tube_tolerance=0.0001,debug_mode=True)
+                                              tube_tolerance=0.0001,debug_mode=False)
             path=str(home)+"/grafici/prova"+str(i)+"w.jpg"
 
             print start_experiment(alg,training_set,unlabeled,test_set,path,False)

@@ -308,7 +308,7 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
 
     Classifier -- a ESVMAlgorithmClassifier instance.
     """
-    def __init__(self, sample, unlabeled_sample=[], c=None, d=None, e=None, left_weight=None,right_weight=None,
+    def __init__(self, sample, unlabeled_sample=[], c=1, d=1, e=1, left_weight=None,right_weight=None,
                  kernel=LinearKernel(),tube_tolerance=1e-4, debug_mode=False):
         LearningAlgorithm.__init__(self, sample)
         check_svm_classification_sample(sample)

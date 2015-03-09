@@ -38,32 +38,29 @@ def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
             fig=classification_data_plot(dataset,color_function=cf_f)
             xr=5
             axes = fig.add_subplot(111)
-            x=range(-xr,xr)
-            y=[-alg.model.decision_function((x_i,0)) for x_i in x]
 
-            h=0.2
-            xx, yy = np.meshgrid(np.arange(-xr,xr, h),
-                     np.arange(-xr, xr, h))
-            l=[(x[0],x[1]) for x in np.c_[xx.ravel(), yy.ravel()]]
+            h=float(2*xr)/len(dataset)
+            if alg:
+                x=range(-xr,xr)
+                y=[-alg.model.decision_function((x_i,0)) for x_i in x]
 
-            Z=np.array([alg.model.decision_function(x) for x in l])
+                xx, yy = np.meshgrid(np.arange(-xr,xr, h),
+                         np.arange(-xr, xr, h))
+                l=[(x[0],x[1]) for x in np.c_[xx.ravel(), yy.ravel()]]
 
-            Z = Z.reshape(xx.shape)
-            w=np.array([alg.model.decision_function(p)-alg.model.threshold for p in alg.model.support_vectors])
-            margin=2 / np.sqrt((w ** 2).sum())
+                Z=np.array([alg.model.decision_function(x) for x in l])
+                Z = Z.reshape(xx.shape)
 
-            if esvm:
-                 contour_value_eps = [alg.model.tube_radius,-alg.model.tube_radius]
+                if esvm:
+                     contour_value_eps = [alg.model.tube_radius,-alg.model.tube_radius]
 
-                 contour_style = ('--',) * len(contour_value_eps)
-                 plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
+                     contour_style = ('--',) * len(contour_value_eps)
+                     plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
 
-            else:
-
-                contour_value_eps = [margin,-margin]
+                contour_value_eps = [1,-1]
                 contour_style = ('-',) * len(contour_value_eps)
                 plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
-            plt.contour(xx, yy, Z,[0],linewidths=[2],colors="b")
+                plt.contour(xx, yy, Z,[0],linewidths=[2],colors="b")
             if regrFunc:
                 """
                 xx, yy = np.meshgrid(np.arange(-xr,xr, h),
@@ -82,7 +79,7 @@ def tmp_plot(alg,labeled,unlabeled,path=None,esvm=True,regrFunc=None):
 
                 xx=np.arange(-xr,xr, h)
                 yy=[regrFunc(x) for x in xx]
-                plt.plot(xx,yy,linestyle="--",linewidth=2,color="orange")
+                plt.plot(xx,yy,linestyle="-",linewidth=2,color="blue")
             if path:
                 fig.savefig(path,bbox_inches='tight')
             else:
@@ -120,6 +117,20 @@ if __name__=="__main__":
     alg=SVMClassificationAlgorithm(labeled)
     alg.run()
     tmp_plot(alg,labeled,[],p,esvm=False)
+
+
+    #Base SVR
+
+    p=thesispath+"basesvr.png"
+    d=DataGenerator()
+    unlabeled=d.generate_from_function(lambda x:-x,50,0.5,-2,2,0)
+    import sklearn.svm
+    x,y=[u[:1] for u in unlabeled],[u[-1] for u in unlabeled]
+    alg=sklearn.svm.SVR(kernel="linear")
+    alg.fit(x,y)
+
+    tmp_plot(None,[],unlabeled,p,esvm=False,regrFunc=alg.predict)
+
 
     #Base ESVM
 

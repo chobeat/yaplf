@@ -540,9 +540,8 @@ class ESVMClassifier(Classifier):
                          if alpha[i] > 0 and self.overHardMargin(alpha[i])]
 
         threshold_list = [threshold_l_t[i] - threshold_r_t[i] for i in range(len(threshold_l_t))]
-
         if len(threshold_list) > 0:
-            if max(threshold_list) - min(threshold_list) > math.fabs(tolerance* mean(threshold_list)):
+            if max(threshold_list) - min(threshold_list) > tolerance*math.fabs(mean(threshold_list)):
                 raise Exception("Variance on the estimation of the threshold is too high\n"
                                 "Try using different parameters and a different kernel")
 
@@ -590,6 +589,8 @@ class ESVMClassifier(Classifier):
         else:
             tube_radius_p = []
         tube_list = tube_radius_n + tube_radius_p
+        tube_list=[abs(x) for x in tube_list]
+
         if len(tube_list) > 0:
             #a high variance is a hint that something is wrong with the model
             if max(tube_list) - min(tube_list) > tolerance * math.fabs(mean(tube_list)):
@@ -604,6 +605,7 @@ class ESVMClassifier(Classifier):
 
         if self.tube_radius > 0:
             self.in_tube_unlabeled_indices = [i for i in range(len(unlabeled_sample)) if gamma[i] < d and delta[i] < d]
+            print [self.compute(unlabeled_sample[i]) for i in self.in_tube_unlabeled_indices]
         else:
             self.in_tube_unlabeled_indices = []
 
@@ -648,7 +650,7 @@ class ESVMClassifier(Classifier):
 
         """
         distance = self.decision_function(pattern)
-        return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tube_tolerance
+        return math.fabs(distance) < self.tube_radius or math.fabs(math.fabs(distance) - self.tube_radius) < self.tolerance
 
     def quality_index(self,labeled,unlabeled):
         r"""
@@ -670,8 +672,29 @@ class ESVMClassifier(Classifier):
 
         unlabeled_in_tube_rate=sum([1 for x in unlabeled if self.intube(x) ])/float(len(unlabeled))
 
-        print labeled_in_tube_rate,unlabeled_in_tube_rate
         return (1-labeled_in_tube_rate)*unlabeled_in_tube_rate
 
     def compute(self, pattern):
         return sign(self.decision_function(pattern))
+
+
+
+    def three_way_classification(self,pattern):
+        r"""
+        INPUT:
+
+        - ``self`` -- SVMClassifier object on which the function is invoked.
+
+        - ``pattern`` -- pattern whose class is to be evaluated.
+
+
+
+        OUTPUT: three values classification of a new pattern. Returns 0 if the pattern is considered ambiguous.
+        Otherwise the pattern's estimated label is calculated and returned.
+
+        """
+
+        if self.intube(pattern):
+            return 0
+        else:
+            return self.compute(pattern)

@@ -7,42 +7,78 @@ from yaplf.algorithms.svm.classification import *
 from yaplf.testsandbox.experiment_tools import *
 class ClassifierBridge():
 
-    def __init__(self,cls,get_param_list,args,kwargs):
-        print args
-        print kwargs
+    def __init__(self,cls,args,kwargs):
+        self.args=args
+        self.kwargs=kwargs
         self.cls=cls
-        self.get_param_list=get_param_list
-        self.alg=self.cls(*args,**kwargs)
 
-    def fit(self,x,y,unlabeled):
-
+    def fit(self,x,y):
+        print self.kwargs
+        self.alg=self.cls([LabeledExample([1,1],1)],*self.args,c=self.c,d=self.d,e=self.e,kernel=self.kernel,dummy=True,**self.kwargs)
         labeled=[LabeledExample(x[i],y[i]) for i in range(len(x)) ]
         self.alg.sample=labeled
-        self.alg.run()
+        print self.alg.c
+        try:
+            self.alg.run()
+        except Exception,err:
+            print err
+
     def predict(self,x):
-        return self.alg.model.compute(x)
+        if self.alg.model:
+            return self.alg.model.compute(x)
+        else:
+            return 0
     def score(self,x,y):
         test=[LabeledExample(x[i],y[i]) for i in range(len(x)) ]
-        return evaluate_classifier(self.alg.model,test)
+        if self.alg.model:
 
-    def get_params(self,deep):
-       return [self.alg[param] for param in self.get_param_list]
+            score3=evaluate_classifier(self.alg.model,test,scaling_function=logistic_scaling_function,scaling_params=[1])
+            score=evaluate_classifier(self.alg.model,test,scaling_function=default_scaling_function)
+            print score,score3
+            return score
+        else:
+            return 0
+    def get_params(self,deep=True):
+       return {"cls":self.cls,"args":self.args,"kwargs":self.kwargs}
 
+    def set_params(self,**params):
+        print params
+        for name,param in params.iteritems():
+            setattr(self,name,param)
 
 
 def param_search(cls,labeled,params_list,c_args,c_kwargs):
-    estimator=ClassifierBridge(cls,params_list,c_args,c_kwargs)
-    fit_params={"unlabeled":unlabeled}
-    gs=sklearn.grid_search.GridSearchCV(estimator,params_list,fit_params=fit_params)
+    estimator=ClassifierBridge(cls,c_args,c_kwargs)
+    gs=sklearn.grid_search.GridSearchCV(estimator,params_list,refit=False)
     X=[x.pattern for x in labeled]
     Y=[x.label for x in labeled]
-
     gs.fit(X,Y)
-    print gs.grid_scores_
+    for params,mean_score,scores in gs.grid_scores_:
+        print params, scores
+
+def param_to_kernel(k,param_list):
+    return map(lambda x:k(x),param_list)
+
+def split_by_label(labeled):
+    pos,neg=[],[]
+    for i in labeled:
+        (pos if i.label==1 else neg).append(i)
+
+    return pos,neg
 
 d=DataGenerator()
-labeled,unlabeled=d.generate_normal_dataset(2)
+labeled,unlabeled,a,b=read_webspam_with_votelist()
+search_kernel=yaplf.models.kernel.GaussianKernel
 random.shuffle(labeled)
+pos,neg=split_by_label(labeled)
+labeled=pos[:300]+neg[:400]
+random.shuffle(labeled)
+kwargs= {"tube_tolerance":0.01,"debug_mode":False}
 
-kwargs= {"kernel":yaplf.models.kernel.GaussianKernel(3),"tube_tolerance":0.0001,"debug_mode":False}
-param_search(ESVMClassifier,labeled,{"C":[1,2,3],"E":[1,2,5],"D":[1]},c_args=[unlabeled],c_kwargs=kwargs)
+param_search(ESVMClassificationAlgorithm,labeled,{"c":[1],"e":[100,200,300],"d":[1],
+                                                  "kernel":param_to_kernel(search_kernel,[50])}
+             ,c_args=[unlabeled],c_kwargs=kwargs)
+
+param_search(SVMClassificationAlgorithm,labeled,{"c":[1],"e":[1],"d":[1],
+                                                  "kernel":param_to_kernel(search_kernel,[50])}
+             ,c_args=[unlabeled],c_kwargs=kwargs)

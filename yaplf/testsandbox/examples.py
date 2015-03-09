@@ -219,7 +219,7 @@ def ensemble_votes_experiment1():
 def main_example():
 
       d=DataGenerator()
-      labeled,unlabeled=d.generate_normal_dataset(2)
+      labeled,unlabeled=d.generate_simple_dataset()
       random.shuffle(labeled)
 
       training_set=labeled[:60]
@@ -231,6 +231,6 @@ def main_example():
                                               tube_tolerance=0.0001,debug_mode=False)
             path=str(home)+"/grafici/prova"+str(i)+"w.jpg"
 
-            print start_experiment(alg,training_set,unlabeled,test_set,path,False)
+            print start_experiment(alg,training_set,unlabeled,test_set,path)
 
 main_example()

@@ -4,6 +4,7 @@ from sklearn import metrics
 from os.path import expanduser
 from yaplf.algorithms.svm.classification import *
 from yaplf.testsandbox.thesisdraw import tmp_plot
+import math
 import os
 from ensemble import *
 import csv
@@ -51,18 +52,18 @@ def persist_result(res,name,dataset_type,annotation=None,overwrite=True):
         writer=csv.writer(f,delimiter=" ")
         writer.writerow(res)
 def read_webspam():
-
+    path="/home/chobeat/git/yaplf/yaplf/testsandbox/"
     keyword_map={"spam":1,"nonspam":-1,"undecided":0}
-    with open("feat.csv","r") as f:
+    with open(path+"feat.csv","r") as f:
 
         feat= [i.split(",") for i in f][1:]
         feat_dict={int(i[0]):[float(j) for j in i[2:]] for i in feat}
 
-    with open("decided_labels.txt","r")as f:
+    with open(path+"decided_labels.txt","r")as f:
         labels=[i.split(" ") for i in f]
         labels_dict={int(i[0]):keyword_map[i[1]] for i in labels}
 
-    with open("undecided_labels.txt","r") as f:
+    with open(path+"undecided_labels.txt","r") as f:
 
         undecided_labels=[i.split(" ") for i in f]
         def extract(x):
@@ -93,12 +94,26 @@ def read_dataset_temp():
 
 home = expanduser("~")
 
-def evaluate_classifier(model,test_set):
+def logistic_scaling_function(x,model,beta):
+    def sigmoid(x,beta):
+        return 1 / (1 + math.exp(-x*beta))
+
+    dist=model.decision_function(x)
+    a=sigmoid(dist,beta)
+
+    return a
+
+
+def default_scaling_function(x,model,*args):
+    return model.compute(x)
+
+def evaluate_classifier(model,test_set,scaling_function=default_scaling_function,scaling_params=[]):
+
     def format_data(label_list):
         return [(l+abs(l))/2 for l in label_list]
 
     y_true=format_data([x.label for x in test_set])
-    y_eval=[model.compute(x.pattern) for x in test_set]
+    y_eval=[scaling_function(x.pattern,model,*scaling_params) for x in test_set]
     y_eval=format_data(y_eval)
 
     diff=[(y_eval[i],y_true[i]) for i in range(len(y_eval)) if y_eval[i]!=y_true[i]]
@@ -111,7 +126,8 @@ def evaluate_classifier(model,test_set):
 
     res=os.popen(" cat ./temp.csv \
   | sed 's/NONSPAM/0/g' | sed 's/SPAM/1/g' \
-  | grep -v '^#' | awk '{print $2,$3}' | ./perf -PRF -AUC -plot pr").read()
+  | grep -v '^#' | awk '{print $2,$3}' | /home/chobeat/git/yaplf/yaplf/testsandbox/perf -PRF -AUC -plot pr").read()
+
     roc=float(res.split("\n")[-2].replace("ROC    ",""))
 
     os.remove(tmp_path)

@@ -309,9 +309,10 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
     Classifier -- a ESVMAlgorithmClassifier instance.
     """
     def __init__(self, sample, unlabeled_sample=[], c=1, d=1, e=1, left_weight=None,right_weight=None,
-                 kernel=LinearKernel(),tube_tolerance=1e-4, debug_mode=False):
+                 kernel=LinearKernel(),tube_tolerance=1e-3, debug_mode=False,dummy=False):
         LearningAlgorithm.__init__(self, sample)
-        check_svm_classification_sample(sample)
+        if not dummy:
+            check_svm_classification_sample(sample)
         check_svm_classification_unlabeled_sample(unlabeled_sample)
 
         if not right_weight:
@@ -338,7 +339,6 @@ class ESVMClassificationAlgorithm(LearningAlgorithm):
         solution= self.solver.solve(self.sample, self.unlabeled_sample, self.c, self.d, self.e,
                                                   self.l,self.r,self.kernel,
                                                   tolerance=self.tolerance)
-
         self.model=ESVMClassifier(solution, self.sample,self.unlabeled_sample,self.c,self.d,
                                   self.l, self.r,
                                   tolerance=self.tolerance,kernel=self.kernel,debug_mode=self.debug_mode)

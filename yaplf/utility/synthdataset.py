@@ -23,13 +23,41 @@ class DataGenerator():
         unlabeled=self.generate_from_point(unlabeled_center,20,0.2,0)
         return [labeled,unlabeled]
 
-    def generate_simple_dataset(self,d=2):
+    def generate_asymmetric_dataset(self,d=40):
+        neg_center= np.random.normal(-3, 0.2, d)
+        pos_center=np.random.normal(3, 0.2, d)
+
+        neg=self.generate_from_point(neg_center,250,2,-1)
+        pos=self.generate_from_point(pos_center,50,2,1)
+        labeled=pos+neg
+
+        unlabeled_center=np.random.normal(0, 0.5, d)
+        unlabeled=self.generate_from_point(unlabeled_center,20,0.2,0)
+
+        return [labeled,unlabeled]
+
+    def generate_cleaning_dataset(self,d=2):
+        neg_center= np.random.normal(-1, 0.2, d)
+        pos_center=np.random.normal(1, 0.2, d)
+        neg_amb_center=np.random.normal(-0.2,0.2,d)
+        pos_amb_center=np.random.normal(0.2,0.2,d)
+        neg=self.generate_from_point(neg_center,20,0.3,-1)+self.generate_from_point(neg_amb_center,5,0.5,-1)
+        pos=self.generate_from_point(pos_center,20,0.3,1)+self.generate_from_point(pos_amb_center,5,0.5,1)
+        labeled=pos+neg
+
+        unlabeled_center=np.random.normal(0, 0.1, d)
+        unlabeled=self.generate_from_point(unlabeled_center,20,0.5,0)
+
+        return [labeled,unlabeled]
+
+
+    def generate_simple_dataset(self):
         """
         Simple dataset centered around three points: one labeled with +1, one with -1
         and a third unlabeled.
         """
-        neg=self.generate_from_point([1,2,3]+[1]*d,50,2,-1)
-        pos=self.generate_from_point([1,4,4]+[1]*d,50,2,1)
+        neg=self.generate_from_point([0.4,0.8],20,0.5,-1)
+        pos=self.generate_from_point([-1.2,-1.1],20,0.4,1)
         #neg=self.generate_from_function(lambda x:x+1,20,0.5,-2,2,-1)
 
         #pos=self.generate_from_function(lambda x:0.9*x-1,200,0.5,-2,2,1)
@@ -37,7 +65,7 @@ class DataGenerator():
 
         labeled=pos+neg
         #labeled=[LabeledExample([-0.9,-0.9],-1),LabeledExample([0.9,-0.9],1),LabeledExample([-0.9,0.9],1),LabeledExample([0.9,0.9],1)]
-        unlabeled=self.generate_from_point([0,1,1]+[1]*d,20,0.2,0)
+        unlabeled=self.generate_from_point([0,0.5],10,0.2,0)
         #unlabeled=self.generate_from_function(lambda x:0.8*x-0.5,100,0.3,-2,2)
         #unlabeled=[[-0.1,-0.1],[-0.3,-0.3],[0.1,-0.3],[0.2,-0.4],[0.3,-0.366648]]
 
@@ -55,10 +83,10 @@ class DataGenerator():
         return labeled,unlabeled
 
     def generate_ensemble_dataset(self):
-        neg=self.generate_from_function(lambda x:+0.8,200,0.5,-1,1,-1)
-        pos=self.generate_from_function(lambda x:-0.8,200,0.5,-1,1,1)
+        neg=self.generate_from_function(lambda x:+0.8,100,0.5,-1,1,-1)
+        pos=self.generate_from_function(lambda x:-0.8,100,0.5,-1,1,1)
         labeled=pos+neg
-        unlabeled=self.generate_from_function(lambda x:0,250,0.3,-1,1)
+        unlabeled=self.generate_from_function(lambda x:0,50,0.3,-1,1)
         return labeled,unlabeled
 
 

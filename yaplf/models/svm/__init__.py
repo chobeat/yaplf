@@ -605,7 +605,6 @@ class ESVMClassifier(Classifier):
 
         if self.tube_radius > 0:
             self.in_tube_unlabeled_indices = [i for i in range(len(unlabeled_sample)) if gamma[i] < d and delta[i] < d]
-            print [self.compute(unlabeled_sample[i]) for i in self.in_tube_unlabeled_indices]
         else:
             self.in_tube_unlabeled_indices = []
 

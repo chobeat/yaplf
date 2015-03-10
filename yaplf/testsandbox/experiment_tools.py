@@ -107,6 +107,10 @@ def logistic_scaling_function(x,model,beta):
 def default_scaling_function(x,model,*args):
     return model.compute(x)
 
+
+def index_quality_evaluation(labeled,unlabeled,model,*args,**kwargs):
+    return model.quality_index(labeled,unlabeled)
+
 def evaluate_classifier(model,test_set,scaling_function=default_scaling_function,scaling_params=[]):
 
     def format_data(label_list):

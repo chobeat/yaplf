@@ -15,21 +15,29 @@ def cross_validation_split(labeled,fold):
     size=len(labeled)/fold
     return [(labeled[i*size:(i+1)*size],labeled[:i*size]+labeled[(i+1)*size:]) for i in range(fold)]
 
-def cross_validation(cls,dataset,fold,*args,**kwargs):
+def cross_validation(cls,dataset,fold,three_way=False,*args,**kwargs):
     grouped_dataset=cross_validation_split(dataset,fold)
     precision_sum=0
+    ambiguous=float(0)
+    errors=float(0)
     for test_set,training_set in grouped_dataset:
         alg=cls(training_set,*args,**kwargs)
+
         try:
             alg.run()
         except Exception,err:
             print err
+            errors+=1
             continue
-        curr_precision=float(sum([1 for i in test_set if alg.model.compute(i.pattern)==i.label ]))/len(test_set)
+        print three_way
+        curr_precision,curr_ambiguous=test_error(alg.model,test_set,three_way)
+        print curr_precision,curr_ambiguous
         precision_sum=precision_sum+curr_precision
+        ambiguous+=curr_ambiguous
 
-    average_precision=precision_sum/fold
-    return  average_precision
+    average_precision=precision_sum/(fold-errors)
+    average_ambiguous=ambiguous/(fold-errors)
+    return  average_precision,average_ambiguous
 
 def persist_result(res,name,dataset_type,annotation=None,overwrite=True):
 
@@ -138,6 +146,24 @@ def evaluate_classifier(model,test_set,scaling_function=default_scaling_function
 
     return roc
 
+def test_error(model,test_set,three_way=False):
+    ambiguous_count=0
+    correct_count=0
+
+    for x in test_set:
+        pattern,true_label=x.pattern,x.label
+        if three_way:
+            label=model.three_way_classification(pattern)
+        else:
+            label=model.compute(pattern)
+        if label==0:
+            ambiguous_count+=1
+        else:
+            if label==true_label:
+                correct_count+=1
+    print
+    test_error=float(correct_count)/(len(test_set)-ambiguous_count)
+    return test_error,ambiguous_count
 
 def start_experiment(alg,labeled,unlabeled,test_set=None,path=None,ESVM=True):
 

@@ -12,11 +12,11 @@ class DataGenerator():
 
 
     def generate_normal_dataset(self,d=20):
-        neg_center= np.random.normal(-1, 0.8, d)
-        pos_center=np.random.normal(1, 0.8, d)
+        neg_center= np.random.normal(-0.5, 0.8, d)
+        pos_center=np.random.normal(0.5, 0.8, d)
 
-        neg=self.generate_from_point(neg_center,50,1,-1)
-        pos=self.generate_from_point(pos_center,50,1,1)
+        neg=self.generate_from_point(neg_center,50,0.8,-1)
+        pos=self.generate_from_point(pos_center,50,0.8,1)
         labeled=pos+neg
 
         unlabeled_center=np.random.normal(0, 0.5, d)

@@ -29,15 +29,26 @@ def cross_validation(cls,dataset,fold,three_way=False,*args,**kwargs):
             print err
             errors+=1
             continue
-        print three_way
         curr_precision,curr_ambiguous=test_error(alg.model,test_set,three_way)
-        print curr_precision,curr_ambiguous
-        precision_sum=precision_sum+curr_precision
-        ambiguous+=curr_ambiguous
+        if curr_precision>0:
+            precision_sum=precision_sum+curr_precision
+            ambiguous+=curr_ambiguous
+        else:
+            errors+=1
+    if fold-errors>0:
+        average_precision=precision_sum/(fold-errors)
+        average_ambiguous=ambiguous/(fold-errors)
+        return  average_precision,average_ambiguous
+    else:
+        return "errore che boh"
 
-    average_precision=precision_sum/(fold-errors)
-    average_ambiguous=ambiguous/(fold-errors)
-    return  average_precision,average_ambiguous
+
+def split_by_label(labeled):
+    pos,neg=[],[]
+    for i in labeled:
+        (pos if i.label==1 else neg).append(i)
+
+    return pos,neg
 
 def persist_result(res,name,dataset_type,annotation=None,overwrite=True):
 
@@ -161,9 +172,11 @@ def test_error(model,test_set,three_way=False):
         else:
             if label==true_label:
                 correct_count+=1
-    print
-    test_error=float(correct_count)/(len(test_set)-ambiguous_count)
-    return test_error,ambiguous_count
+    if len(test_set)-ambiguous_count>0:
+        test_error=float(correct_count)/(len(test_set)-ambiguous_count)
+        return test_error,ambiguous_count
+    else:
+        return 0,0
 
 def start_experiment(alg,labeled,unlabeled,test_set=None,path=None,ESVM=True):
 

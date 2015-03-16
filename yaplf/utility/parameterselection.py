@@ -63,26 +63,24 @@ def param_search(cls,labeled,params_list,c_args,c_kwargs,evaluation_func=evaluat
 def param_to_kernel(k,param_list):
     return map(lambda x:k(x),param_list)
 
-def split_by_label(labeled):
-    pos,neg=[],[]
-    for i in labeled:
-        (pos if i.label==1 else neg).append(i)
 
-    return pos,neg
 if __name__=="__main__":
     d=DataGenerator()
     labeled,unlabeled,a,b=read_webspam_with_votelist()
     search_kernel=yaplf.models.kernel.GaussianKernel
     random.shuffle(labeled)
     pos,neg=split_by_label(labeled)
-    labeled=pos[:300]+neg[:400]
-    random.shuffle(labeled)
+    labeled=pos[:200]+neg[:300]
     kwargs= {"tube_tolerance":0.01,"debug_mode":False}
 
-    param_search(ESVMClassificationAlgorithm,labeled,{"c":[1],"e":[100,200,300],"d":[1],
-                                                      "kernel":param_to_kernel(search_kernel,[50])}
+
+    res0=param_search(ESVMClassificationAlgorithm,labeled,{"c":[4,10],
+                                                    "e":[0.20*len(unlabeled),0.25*len(unlabeled)],"d":[10,20],
+                                                    "kernel":param_to_kernel(search_kernel,[2])}
                  ,c_args=[unlabeled],c_kwargs=kwargs)
 
-    param_search(SVMClassificationAlgorithm,labeled,{"c":[1],"e":[1],"d":[1],
-                                                      "kernel":param_to_kernel(search_kernel,[50])}
+    res1=param_search(SVMClassificationAlgorithm,labeled,{"c":[1],"e":[1],"d":[1],
+                                                      "kernel":param_to_kernel(search_kernel,[1])}
                  ,c_args=[unlabeled],c_kwargs=kwargs)
+
+    print res0,res1

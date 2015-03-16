@@ -216,14 +216,14 @@ def ensemble_votes_experiment1():
     persist_result(res,"ensemble_votes1", "webspam","Formato: lista di discrepanze tra la media dei voti dell'ensemble e"
                               " l'ambiguity intrinseca nel dataset per i punti non undecided")
 
-def main_example(x):
+def webspam_svm_esvm3_example(x):
 
-      d=DataGenerator()
       labeled,unlabeled,a,b=read_webspam_with_votelist()
 
       random.shuffle(labeled)
 
-      training_set=labeled[:600]
+      training_set=labeled[:800]
+      unlabeled=unlabeled[:200]
       ressvm=cross_validation(SVMClassificationAlgorithm,training_set,8,False,
                                              kernel=yaplf.models.kernel.GaussianKernel(3))
       print ressvm
@@ -237,7 +237,7 @@ def main_example(x):
                                              kernel=yaplf.models.kernel.GaussianKernel(3),
 
                                               tube_tolerance=0.01,debug_mode=False)
-      print ressvm,res0,res1
+      return ressvm,res0,res1
 
 
-main_example(100)
+print [webspam_svm_esvm3_example(i) for i in [10,20,50]]

@@ -498,7 +498,7 @@ class ESVMClassifier(Classifier):
         """
         alpha, gamma, delta = solution
         #tolerance on the variance in the list of estimations of threshold and tube radius.
-
+        print c
         Classifier.__init__(self)
         self.kernel = kernel
         self.tolerance =tolerance

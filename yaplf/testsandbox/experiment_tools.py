@@ -10,16 +10,38 @@ from ensemble import *
 import csv
 import os
 from subprocess import call
+
+def chunks(input, size):
+    input_size = len(input)
+    slice_size = input_size / size
+    remain = input_size % size
+    result = []
+    iterator = iter(input)
+    for i in range(size):
+        result.append([])
+        for j in range(slice_size):
+            result[i].append(iterator.next())
+        if remain:
+            result[i].append(iterator.next())
+            remain -= 1
+    return result
 def cross_validation_split(labeled,fold):
 
     size=len(labeled)/fold
     return [(labeled[i*size:(i+1)*size],labeled[:i*size]+labeled[(i+1)*size:]) for i in range(fold)]
 
-def cross_validation(cls,dataset,fold,three_way=False,*args,**kwargs):
-    grouped_dataset=cross_validation_split(dataset,fold)
+def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return_quality_index=True,*args,**kwargs):
+    if fixed_test_set:
+        c=chunks(dataset,fold)
+        grouped_dataset=[(fixed_test_set,c_i) for c_i in c]
+
+    else:
+        grouped_dataset=cross_validation_split(dataset,fold)
+
     precision_sum=0
     ambiguous=float(0)
     errors=float(0)
+    quality_index_list=[]
     for test_set,training_set in grouped_dataset:
         alg=cls(training_set,*args,**kwargs)
 
@@ -30,6 +52,9 @@ def cross_validation(cls,dataset,fold,three_way=False,*args,**kwargs):
             errors+=1
             continue
         curr_precision,curr_ambiguous=test_error(alg.model,test_set,three_way)
+        if return_quality_index:
+            quality_index_list.append(alg.model.quality_index(training_set,kwargs["unlabeled_sample"]))
+            print quality_index_list
         if curr_precision>0:
             precision_sum=precision_sum+curr_precision
             ambiguous+=curr_ambiguous
@@ -38,9 +63,12 @@ def cross_validation(cls,dataset,fold,three_way=False,*args,**kwargs):
     if fold-errors>0:
         average_precision=precision_sum/(fold-errors)
         average_ambiguous=ambiguous/(fold-errors)
-        return  average_precision,average_ambiguous
+        ret=[average_precision,average_ambiguous]
+        if return_quality_index:
+            ret.append(mean(quality_index_list))
+        return  ret
     else:
-        return "errore che boh"
+        return [0,0,0]
 
 
 def split_by_label(labeled):

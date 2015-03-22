@@ -52,5 +52,5 @@ def iono_cluster_param_search(threshold=0.125):
 
 
 
-
-iono_cluster_param_search()
+if __name__=="__main__":
+    iono_cluster_param_search()

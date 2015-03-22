@@ -667,6 +667,7 @@ class ESVMClassifier(Classifier):
         unlabeled examples.
 
         """
+        print [self.intube(x) for x in unlabeled]
         labeled_in_tube_rate=sum([1 for x in labeled if self.intube(x.pattern) ])/float(len(labeled))
 
         unlabeled_in_tube_rate=sum([1 for x in unlabeled if self.intube(x) ])/float(len(unlabeled))

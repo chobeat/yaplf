@@ -53,4 +53,6 @@ def iono_cluster_param_search(threshold=0.125):
 
 
 if __name__=="__main__":
-    iono_cluster_param_search()
+
+
+    print type(read_iono()[0].pattern)

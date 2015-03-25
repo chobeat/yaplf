@@ -164,7 +164,6 @@ if __name__=="__main__":
     alg.run()
 
     tmp_plot(alg,labeled,[],p,esvm=False)
-"""
 
     #index_quality
 
@@ -215,3 +214,4 @@ if __name__=="__main__":
         plt.contour(xx, yy, Z,contour_value_eps,linestyles=contour_style,colors="g")
         plt.contour(xx, yy, Z,[0],linewidths=[2],colors="b")
     fig.savefig(p)
+    """

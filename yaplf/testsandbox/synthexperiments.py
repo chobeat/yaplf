@@ -38,37 +38,51 @@ def experiment_e():
     f.savefig("/home/chobeat/git/tesi/esperimenti/esperimentoEtubo.png")
 
 
-def experiment_perf(fold=5):
+def experiment_perf(repeat=1,fold=5):
     d=DataGenerator()
     kwargs= {"tube_tolerance":0.01,"debug_mode":False}
-    x=arange(0.1,0.5,0.02)
+    x=arange(0.1,0.4,0.025)
+    finaly1=[]
+    finaly2=[]
+    finaly3=[]
+    for repetition in range(repeat):
+        labeled,unlabeled=d.generate_perf_dataset()
+        plot_data(labeled,unlabeled,"/home/chobeat/git/tesi/esperimenti/normaldata.png")
 
-    labeled,unlabeled=d.generate_perf_dataset()
-    plot_data(labeled,unlabeled,"/home/chobeat/git/tesi/esperimenti/normaldata.png")
+        y1=[]
 
-    y1=[]
+        y2=[]
+        y3=[]
+        for e_i in x:
 
-    y2=[]
-    y3=[]
-    for e_i in x:
+                res=cross_validation(ESVMClassificationAlgorithm, labeled, fold, return_quality_index=True,
+                             c=2,e=e_i*len(unlabeled),
+                                                                                                 d=1,
+                                                          kernel=GaussianKernel(1),
+                     unlabeled_sample=unlabeled,**kwargs)
+                if res!=0:
+                    y1.append(res[0])
+                    y3.append(res[2])
 
-            res=cross_validation(ESVMClassificationAlgorithm, labeled, fold, return_quality_index=True,
-                         c=2,e=e_i*len(unlabeled),
-                                                                                             d=1,
-                                                      kernel=GaussianKernel(1),
-                 unlabeled_sample=unlabeled,**kwargs)
-            if res!=0:
-                y1.append(res[0])
-                y3.append(res[2])
+        finaly1.append(y1)
+        finaly3.append(y3)
+    def filtermean(x):
+        return [mean([s[index] for s in x]) for index in range(len(x[0]))]
+
+
+    print finaly1
+    print finaly3
+    finaly1=filtermean(finaly1 )
+    finaly3=filtermean(finaly3)
+
+    print finaly1
+    print finaly3
     x=map(lambda e_i:e_i*len(unlabeled),x)
     f=figure()
 
     p=f.add_subplot(111,xlabel='Valore di E')
-    print y1
-    print y3
-    print len(y1),len(y3)
-    p.plot(x,y1,"r-",x,y3,"b-")
+    p.plot(x,finaly1,"r-",x,finaly3,"b-")
     f.savefig("/home/chobeat/git/tesi/esperimenti/esperimentoperfquality.png")
 
 
-experiment_perf(5)
+experiment_perf(5,5)

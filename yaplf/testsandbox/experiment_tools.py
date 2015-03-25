@@ -30,7 +30,7 @@ def cross_validation_split(labeled,fold):
     size=len(labeled)/fold
     return [(labeled[i*size:(i+1)*size],labeled[:i*size]+labeled[(i+1)*size:]) for i in range(fold)]
 
-def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return_quality_index=True,*args,**kwargs):
+def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return_quality_index=False,*args,**kwargs):
     if fixed_test_set:
         c=chunks(dataset,fold)
         grouped_dataset=[(fixed_test_set,c_i) for c_i in c]
@@ -44,6 +44,10 @@ def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return
     quality_index_list=[]
     for test_set,training_set in grouped_dataset:
         alg=cls(training_set,*args,**kwargs)
+        if return_quality_index:
+            unlabeled=kwargs["unlabeled_sample"][:]
+            unlabeled_quality=unlabeled[:len(unlabeled)/4]
+            kwargs["unlabeled_sample"]=unlabeled[len(unlabeled)/4:]
 
         try:
             alg.run()
@@ -53,8 +57,8 @@ def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return
             continue
         curr_precision,curr_ambiguous=test_error(alg.model,test_set,three_way)
         if return_quality_index:
-            quality_index_list.append(alg.model.quality_index(training_set,kwargs["unlabeled_sample"]))
-            print quality_index_list
+            quality_index_list.append(alg.model.quality_index(test_set,unlabeled_quality))
+
         if curr_precision>0:
             precision_sum=precision_sum+curr_precision
             ambiguous+=curr_ambiguous
@@ -65,7 +69,8 @@ def cross_validation(cls,dataset,fold,fixed_test_set=None,three_way=False,return
         average_ambiguous=ambiguous/(fold-errors)
         ret=[average_precision,average_ambiguous]
         if return_quality_index:
-            ret.append(mean(quality_index_list))
+
+            ret.append(mean([q for q in quality_index_list if q!=0]))
         return  ret
     else:
         return [0,0,0]

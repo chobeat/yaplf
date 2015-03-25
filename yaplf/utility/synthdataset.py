@@ -77,7 +77,7 @@ class DataGenerator():
 
         pos=pos+self.generate_from_function(lambda x:0.5*x-0.6,10,0.5,-1,1,1)
         labeled=pos+neg
-        central=self.generate_from_function(lambda x:0,50,0.1,-1,1)+self.generate_from_function(lambda x:0,50,0.8,-1,1)
+        central=self.generate_from_function(lambda x:0,50,0.1,-1,1)+self.generate_from_function(lambda x:0,20,0.6,-1,1)
         return labeled,central
 
     def generate_leap_dataset(self):

@@ -26,7 +26,7 @@ def clustering_2D_draw(labeled_dataset,threshold):
     plot_data(labeled_without_candidates,candidates,"plot_candidates"+str(threshold)+".jpg")
 
 
-def clustering_experiment(labeled_dataset,fold,test_set,threshold=0.30):
+def clustering_experiment(labeled_dataset,fold,test_set,e_range,threshold=0.30):
     """test_set=labeled_dataset[:50]
     labeled_dataset=labeled_dataset[50:]
     """
@@ -39,16 +39,26 @@ def clustering_experiment(labeled_dataset,fold,test_set,threshold=0.30):
     candidates=[labeled_dataset[j].pattern for j in range(len(labeled_dataset)) if j in candidates_indices]
     kwargs= {"tube_tolerance":0.01,"debug_mode":False}
     import functools
-    res_with_candidates=cross_validation(ESVMClassificationAlgorithm, labeled_without_candidates, fold, test_set,
-                         c=4,e=0.2*len(candidates),
+    y1=[]
+    y2=[]
+    for e_i in e_range:
+        res_with_candidates=cross_validation(ESVMClassificationAlgorithm, labeled_without_candidates, fold, test_set,
+                                             return_quality_index=True,
+                         c=4,e=e_i*len(candidates),
                                                                                              d=1,
                                                       kernel=GaussianKernel(2),
                  unlabeled_sample=candidates,**kwargs)
-    res_svm=cross_validation(SVMClassificationAlgorithm, labeled_without_candidates, fold)
+        print res_with_candidates
+        y1.append(res_with_candidates[0])
+        y2.append(res_with_candidates[2])
+
+    res_svm_without=cross_validation(SVMClassificationAlgorithm,labeled_without_candidates,fold, test_set,kernel=GaussianKernel(2),
+                 **kwargs)
+    res_svm_with=cross_validation(SVMClassificationAlgorithm,labeled_dataset,fold, test_set,kernel=GaussianKernel(2),
+                 **kwargs)
 
 
-    return res_with_candidates[0],res_svm[0],float(len(candidates))/len(labeled_dataset)
-
+    return y1,y2,res_svm_with,res_svm_without,len(candidates)
 
 def is_anom_candidate(centers,membership,coords,threshold):
     def dist(x,y):
@@ -65,26 +75,20 @@ labeled_dataset=d.generate_from_point((-1,1),50,1,1)+d.generate_from_point((0.1,
 """
 def svm_comparison_experiment(fold=5):
     labeled_dataset=read_iono()
-    x=list(arange(0.001,0.50,0.025))
     random.shuffle(labeled_dataset)
-    test_set=labeled_dataset[:80]
-    labeled_dataset=labeled_dataset[80:]
+    test_set=labeled_dataset[:100]
+    labeled_dataset=labeled_dataset[100:]
     kwargs= {"tube_tolerance":0.01,"debug_mode":False}
-    res_svm=cross_validation(SVMClassificationAlgorithm,labeled_dataset,fold, test_set,kernel=GaussianKernel(2),
-                 **kwargs)
-    import multiprocessing.pool
-    import functools
-    p=multiprocessing.pool.ThreadPool(3)
-    results=p.map(functools.partial(clustering_experiment,labeled_dataset,fold,test_set),x)
-    print res_svm
-    print "svm"
-    print results
+    e_x=arange(0.01,0.35,0.02)
+    results=clustering_experiment(labeled_dataset,fold,test_set,e_x,threshold=0.3)
+    print e_x
     import matplotlib.figure
     f=figure()
-    p=f.add_subplot(111,xlabel='threshold',ylabel='test_error')
+    p=f.add_subplot(111,xlabel='Valore di E')
+    print results[2][0]*len(e_x)
 
-    p.plot(x,[res_svm]*len(x))
-    p.plot(x,results)
+    e_x=[i*results[4] for i in e_x]
+    p.plot(e_x,results[0],"y-",e_x,results[1],"g-",e_x,[results[2][0]]*len(e_x),"r--",e_x,[results[3][0]]*len(e_x),"b--")
     f.savefig("/home/chobeat/git/tesi/esperimenti/clusteringvariaresogliatestsetfisso.png")
-svm_comparison_experiment(5)
+svm_comparison_experiment(7)
 
